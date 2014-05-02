@@ -1,0 +1,13 @@
+<template name="home">
+  <h1>WebRTC Signalling with Meteor demo</h1>
+  <button name="start" {{canStart}}>Start</button>
+  <button name="call" {{canCall}}>Call</button>
+  <textarea name="message" {{canSend}}></textarea>
+  <button name="send" {{canSend}}>Send message</button>
+  <ul>
+    {{#each messages}}
+      <li>{{from}}, {{dateCreated}}: {{message}}</li>
+    {{/each}}
+  </ul>
+</template>
+

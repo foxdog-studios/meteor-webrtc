@@ -1,0 +1,11 @@
+{
+  "name": "webrtc-signalling",
+  "description": "WebRTC signalling for Meteor",
+  "homepage": "https://github.com/foxdog-studios/meteor-webrtc",
+  "author": "Lloyd Henning (https://github.com/eldog), Peter Sutton (https://github.com/dj-foxxy)",
+  "version": "0.0.1",
+  "git": "https://github.com/foxdog-studios/meteor-webrtc.git",
+  "packages": {
+    "streams": {}
+  }
+}
