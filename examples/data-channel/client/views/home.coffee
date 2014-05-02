@@ -32,13 +32,13 @@ Template.home.helpers
     'disabled' if webRTCSignaller.started()
 
   canCall: ->
-    'disabled' unless webRTCSignaller.started()
+    'disabled' unless webRTCSignaller.started() and not webRTCSignaller.inCall()
 
   canSend: ->
-    'disabled' unless webRTCSignaller.started()
+    'disabled' unless webRTCSignaller.dataChannelIsOpen()
 
   messages: ->
-    Messages.find({}, {sort: dateCreated: 1})
+    Messages.find({}, {sort: dateCreated: -1})
 
 Template.home.events
   'click [name="start"]': (event) ->
@@ -53,7 +53,9 @@ Template.home.events
 
   'click [name="send"]': (event) ->
     event.preventDefault()
-    message = $('[name="message"]').val()
-    Messages.insert(from: 'You', message: message, dateCreated: new Date())
+    $messageEl = $('[name="message"]')
+    message = $messageEl.val()
     webRTCSignaller.sendData(message)
+    Messages.insert(from: 'You', message: message, dateCreated: new Date())
+    $messageEl.val('')
 
