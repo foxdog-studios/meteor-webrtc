@@ -1,44 +1,153 @@
 # This is the config used to create the RTCPeerConnection
-servers =
-  iceServers: [
-    url: 'stun:stun.l.google.com:19302'
-  ]
+if Meteor.settings?.public?.servers?
+  servers = Meteor.settings.public.servers
+else
+  # Default to Google's stun server
+  servers =
+    iceServers: [
+      url: 'stun:stun.l.google.com:19302'
+    ]
 
-config =
-  optional: [
-    RtpDataChannels: true
-  ]
+config = {}
 
 dataChannelConfig =
-  reliable: false
+  ordered: false
+  maxRetransmitTime: 0
 
-# Try and create an RTCPeerConnection if supported
-if RTCPeerConnection?
-  @webRTCSignaller = new @WebRTCSignaller('mychannel',
+webRTCSignaller = null
+latencyProfiler = null
+
+Session.set('hasWebRTC', false)
+
+
+class LatencyProfiler
+  constructor: (@webRTCSignaller, @stream, @channel) ->
+    @webRTCPingDep = new Deps.Dependency()
+    @websocketPingDep = new Deps.Dependency()
+
+    Deps.autorun =>
+      message = JSON.parse(@webRTCSignaller.getMessage())
+      return unless message
+      if not message.pingBack? and message.pingFrom?
+        message.pingBack = true
+        webRTCSignaller.sendData(JSON.stringify(message))
+      else if message.pingBack
+        diff = Date.now() - message.pingFrom
+        @totalWebRTCPings++
+        @numWebRTCPings--
+        @sumWebRTCPings += diff
+        if @numWebRTCPings > 0
+          Meteor.setTimeout =>
+            @_pingWebRTC()
+          , 1000
+        @webRTCPingDep.changed()
+
+    WebRTCSignallingStream.on @channel, (message) =>
+      if not message.pingBack?
+        message.pingBack = true
+        WebRTCSignallingStream.emit @channel, message
+      else
+        diff = Date.now() - message.pingFrom
+        @totalWebsocketPings++
+        @numWebsocketPings--
+        @sumWebsocketPings += diff
+        if @numWebsocketPings > 0
+          Meteor.setTimeout =>
+            @_pingWebSocket()
+          , 1000
+        @websocketPingDep.changed()
+
+  getWebRTCPingAverage: ->
+    @webRTCPingDep.depend()
+    return unless @totalWebRTCPings > 0
+    @sumWebRTCPings / @totalWebRTCPings
+
+  getWebsocketPingAverage: ->
+    @websocketPingDep.depend()
+    return unless @totalWebsocketPings > 0
+    @sumWebsocketPings / @totalWebsocketPings
+
+  _ping: ->
+    @_pingWebRTC()
+    @_pingWebSocket()
+
+  _getMessage: ->
+    pingFrom: Date.now()
+
+  _pingWebRTC: ->
+    @webRTCSignaller.sendData(JSON.stringify(@_getMessage()))
+
+  _pingWebSocket: ->
+    @stream.emit @channel, @_getMessage()
+
+  ping: (numPings=1) ->
+    @numWebRTCPings = numPings
+    @numWebsocketPings = numPings
+    @totalWebRTCPings = 0
+    @totalWebsocketPings = 0
+    @sumWebRTCPings = 0
+    @sumWebsocketPings = 0
+    @_ping()
+
+
+
+Template.home.rendered = ->
+  roomName = Router.current().params.roomName
+  Session.set('roomName', roomName)
+  # Try and create an RTCPeerConnection if supported
+  hasWebRTC = false
+  if RTCPeerConnection?
+    webRTCSignaller = new WebRTCSignaller(roomName,
                                           servers,
                                           config,
                                           dataChannelConfig)
-else
-  console.error 'No RTCPeerConnection available :('
+    hasWebRTC = true
+  else
+    console.error 'No RTCPeerConnection available :('
+  Session.set('hasWebRTC', true)
 
-Template.home.rendered = ->
+  latencyProfiler = new LatencyProfiler(webRTCSignaller,
+                                        WebRTCSignallingStream,
+                                        "#{roomName}-latency")
+
   Deps.autorun ->
-    message = webRTCSignaller.getMessage()
+    message = JSON.parse(webRTCSignaller.getMessage())
     return unless message?
-    Messages.insert(from: 'Them', message: message, dateCreated: new Date())
+    if message.message?
+      Messages.insert(from: 'Them', message: message.message,
+                      dateCreated: new Date())
+
 
 Template.home.helpers
+  roomName: ->
+    roomName = Session.get('roomName')
+    if roomName
+      Meteor.absoluteUrl(Router.path('home', roomName: roomName)[1...])
+
   canStart: ->
+    return 'disabled' unless Session.get('hasWebRTC')
     'disabled' if webRTCSignaller.started()
 
   canCall: ->
-    'disabled' unless webRTCSignaller.started() and not webRTCSignaller.inCall()
+    return 'disabled' unless Session.get('hasWebRTC')
+    'disabled' unless webRTCSignaller.started() \
+      and not webRTCSignaller.inCall()
 
   canSend: ->
+    return 'disabled' unless Session.get('hasWebRTC')
     'disabled' unless webRTCSignaller.dataChannelIsOpen()
 
   messages: ->
     Messages.find({}, {sort: dateCreated: -1})
+
+  webRTCAverageLatency: ->
+    return unless Session.get('hasWebRTC')
+    latencyProfiler.getWebRTCPingAverage()
+
+  websocketAverageLatency: ->
+    return unless Session.get('hasWebRTC')
+    latencyProfiler.getWebsocketPingAverage()
+
 
 Template.home.events
   'click [name="start"]': (event) ->
@@ -55,7 +164,11 @@ Template.home.events
     event.preventDefault()
     $messageEl = $('[name="message"]')
     message = $messageEl.val()
-    webRTCSignaller.sendData(message)
+    webRTCSignaller.sendData(JSON.stringify(message: message))
     Messages.insert(from: 'You', message: message, dateCreated: new Date())
     $messageEl.val('')
+
+  'click [name="latency"]': (event) ->
+    event.preventDefault()
+    latencyProfiler.ping(10)
 

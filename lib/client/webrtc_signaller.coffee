@@ -101,6 +101,7 @@ class @WebRTCSignaller
                                                           @dataChannelConfig)
     catch error
       @logError(error)
+      return
 
     @dataChannel.onmessage = @handleDataChannelMessage
     @dataChannel.onopen = @handleDataChannelStateChange

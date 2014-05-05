@@ -1,9 +1,14 @@
 <template name="home">
   <h1>WebRTC Signalling with Meteor demo</h1>
+  <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
+  <p>Specifically <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
   <button name="start" {{canStart}}>Start</button>
   <button name="call" {{canCall}}>Call</button>
   <textarea name="message" {{canSend}}></textarea>
   <button name="send" {{canSend}}>Send message</button>
+  <button name="latency" {{canSend}}>Test latency</button>
+  <p>WebRTC average latency: {{webRTCAverageLatency}}ms</p>
+  <p>Websocket average latency: {{websocketAverageLatency}}ms</p>
   <ul>
     {{#each messages}}
       <li>{{from}}, {{dateCreated}}: {{message}}</li>
