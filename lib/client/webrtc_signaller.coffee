@@ -1,5 +1,6 @@
 class @WebRTCSignaller
-  constructor: (@channelName, @servers, @config, @dataChannelConfig) ->
+  constructor: (@channelName, @servers, @config, @dataChannelConfig,
+                @mediaConfig) ->
     WebRTCSignallingStream.on @channelName, @handleMessage
     @_started = false
     @startedDep = new Deps.Dependency()
@@ -9,6 +10,10 @@ class @WebRTCSignaller
     @messageDep = new Deps.Dependency()
     @_dataChannelOpen = false
     @dataChannelDep = new Deps.Dependency()
+    @_localStream = null
+    @_localStreamDep = new Deps.Dependency()
+    @_remoteStream = null
+    @_remoteStreamDep = new Deps.Dependency()
 
   started: ->
     @startedDep.depend()
@@ -26,14 +31,22 @@ class @WebRTCSignaller
     @dataChannelDep.depend()
     @_dataChannelOpen
 
+  getLocalStream: ->
+    @_localStreamDep.depend()
+    @_localStream
+
+  getRemoteStream: ->
+    @_remoteStreamDep.depend()
+    @_remoteStream
+
   sendMessage: (message) ->
     WebRTCSignallingStream.emit(@channelName, message)
 
   handleMessage: (message) =>
     if message.sdp?
-      @handleSDP(message.sdp)
+      @handleSDP(JSON.parse(message.sdp))
     else if message.candidate?
-      @handleIceCandidate(message.candidate)
+      @handleIceCandidate(JSON.parse(message.candidate))
     else
       @logError('Unknown message', meesage)
     @_changeInCall(true)
@@ -43,7 +56,7 @@ class @WebRTCSignaller
     @inCallDep.changed()
 
   handleSDP: (sdp) =>
-    remoteDescription = new RTCSessionDescription(sdp)
+    remoteDescription = new SessionDescription(sdp)
     if remoteDescription.type == 'offer'
       # Create a new RTCPeerConnection
       if @rtcPeerConnection?
@@ -54,14 +67,20 @@ class @WebRTCSignaller
                                             @logError)
 
   handleIceCandidate: (candidate) =>
-    iceCandidate = new RTCIceCandidate(candidate)
+    iceCandidate = new IceCandidate(candidate)
     @rtcPeerConnection.addIceCandidate(iceCandidate)
 
   onIceCandidate: (event) =>
     return unless event.candidate
-    @sendMessage(candidate: event.candidate)
+    @sendMessage(candidate: JSON.stringify(event.candidate))
 
   createOffer: =>
+    if @mediaConfig?
+      @createLocalStream(@_createOffer)
+    else
+      @_createOffer()
+
+  _createOffer: =>
     @rtcPeerConnection.createOffer(@localDescriptionCreated, @logError)
     @_changeInCall(true)
 
@@ -75,22 +94,46 @@ class @WebRTCSignaller
     @_message = event.data
     @messageDep.changed()
 
+  onAddStream: (event) =>
+    @_remoteStream = URL.createObjectURL(event.stream)
+    @_remoteStreamDep.changed()
+    # create a local stream if we don't already have one
+    return if @_localStream?
+
+  createLocalStream: (callback) ->
+    navigator.getUserMedia @mediaConfig, (stream) =>
+      @_localStream = URL.createObjectURL(stream)
+      @rtcPeerConnection.addStream(stream)
+      @_localStreamDep.changed()
+      if callback?
+        callback()
+    , @logError
+
+
   localDescriptionCreated: (description) =>
     @rtcPeerConnection.setLocalDescription(description,
                                            @onLocalDescriptionSet,
                                            @logError)
 
   onLocalDescriptionSet: =>
-    @sendMessage(sdp: @rtcPeerConnection.localDescription)
+    @sendMessage(sdp: JSON.stringify(@rtcPeerConnection.localDescription))
 
   onRemoteDescriptionSet: =>
     return unless @rtcPeerConnection.remoteDescription.type == 'offer'
+    if @mediaConfig?
+      @createLocalStream(@_createAnswer)
+    else
+      @_createAnswer()
+
+  _createAnswer: =>
     @rtcPeerConnection.createAnswer(@localDescriptionCreated, @logError)
+
 
   createRtcPeerConnection: ->
     @rtcPeerConnection = new RTCPeerConnection(@servers, @config)
     @rtcPeerConnection.onicecandidate = @onIceCandidate
     @rtcPeerConnection.ondatachannel = @onDataChannel
+    @rtcPeerConnection.onaddstream = @onAddStream
     @_started = true
     @startedDep.changed()
 
@@ -102,7 +145,6 @@ class @WebRTCSignaller
     catch error
       @logError(error)
       return
-
     @dataChannel.onmessage = @handleDataChannelMessage
     @dataChannel.onopen = @handleDataChannelStateChange
     @dataChannel.onclose = @handleDataChannelStateChange

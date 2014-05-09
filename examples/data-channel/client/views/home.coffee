@@ -5,7 +5,6 @@ else
   # Default to Google's stun server
   servers =
     iceServers: [
-      url: 'stun:stun.l.google.com:19302'
     ]
 
 config = {}
@@ -13,6 +12,12 @@ config = {}
 dataChannelConfig =
   ordered: false
   maxRetransmitTime: 0
+
+mediaConfig =
+  video: true
+  audio: false
+  mandatory:
+    frameRate: 20
 
 webRTCSignaller = null
 latencyProfiler = null
@@ -100,7 +105,8 @@ Template.home.rendered = ->
     webRTCSignaller = new WebRTCSignaller(roomName,
                                           servers,
                                           config,
-                                          dataChannelConfig)
+                                          dataChannelConfig,
+                                          mediaConfig)
     hasWebRTC = true
   else
     console.error 'No RTCPeerConnection available :('
@@ -123,6 +129,14 @@ Template.home.helpers
     roomName = Session.get('roomName')
     if roomName
       Meteor.absoluteUrl(Router.path('home', roomName: roomName)[1...])
+
+  localStream: ->
+    return unless Session.get('hasWebRTC')
+    webRTCSignaller.getLocalStream()
+
+  remoteStream: ->
+    return unless Session.get('hasWebRTC')
+    webRTCSignaller.getRemoteStream()
 
   canStart: ->
     return 'disabled' unless Session.get('hasWebRTC')

@@ -13,7 +13,7 @@
 
 @MediaStream = window.MediaStream or window.webkitMediaStream
 
-@getUserMedia = navigator.mozGetUserMedia \
+navigator.getUserMedia = navigator.mozGetUserMedia \
     or navigator.getUserMedia \
     or navigator.webkitGetUserMedia \
     or navigator.msGetUserMedia
