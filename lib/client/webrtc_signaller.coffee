@@ -1,7 +1,8 @@
 class @WebRTCSignaller
   constructor: (@channelName, @servers, @config, @dataChannelConfig,
-                @mediaConfig) ->
+                mediaConfig) ->
     WebRTCSignallingStream.on @channelName, @handleMessage
+    @setMediaConfig(mediaConfig)
     @_started = false
     @startedDep = new Deps.Dependency()
     @_inCall = false
@@ -10,8 +11,8 @@ class @WebRTCSignaller
     @messageDep = new Deps.Dependency()
     @_dataChannelOpen = false
     @dataChannelDep = new Deps.Dependency()
-    @_localStream = null
-    @_localStreamDep = new Deps.Dependency()
+    @_localStreamUrl = null
+    @_localStreamUrlDep = new Deps.Dependency()
     @_remoteStream = null
     @_remoteStreamDep = new Deps.Dependency()
 
@@ -32,12 +33,14 @@ class @WebRTCSignaller
     @_dataChannelOpen
 
   getLocalStream: ->
-    @_localStreamDep.depend()
-    @_localStream
+    @_localStreamUrlDep.depend()
+    @_localStreamUrl
 
   getRemoteStream: ->
     @_remoteStreamDep.depend()
     @_remoteStream
+
+  setMediaConfig: (@mediaConfig) ->
 
   sendMessage: (message) ->
     WebRTCSignallingStream.emit(@channelName, message)
@@ -75,10 +78,7 @@ class @WebRTCSignaller
     @sendMessage(candidate: JSON.stringify(event.candidate))
 
   createOffer: =>
-    if @mediaConfig?
-      @createLocalStream(@_createOffer)
-    else
-      @_createOffer()
+    @createLocalStream(@_createOffer)
 
   _createOffer: =>
     @rtcPeerConnection.createOffer(@localDescriptionCreated, @logError)
@@ -97,14 +97,21 @@ class @WebRTCSignaller
   onAddStream: (event) =>
     @_remoteStream = URL.createObjectURL(event.stream)
     @_remoteStreamDep.changed()
-    # create a local stream if we don't already have one
-    return if @_localStream?
 
   createLocalStream: (callback) ->
+    addStreamToRtcPeerConnection = =>
+      @rtcPeerConnection.addStream(@_localStream)
+    if @_localStream? and _.isEqual(@mediaConfig, @_lastMediaConfig)
+      # Already have a local stream and the media config has not changed, so
+      # we will keep on using the same stream.
+      addStreamToRtcPeerConnection()
+      return callback()
+    @_lastMediaConfig = _.clone(@mediaConfig)
     navigator.getUserMedia @mediaConfig, (stream) =>
-      @_localStream = URL.createObjectURL(stream)
-      @rtcPeerConnection.addStream(stream)
-      @_localStreamDep.changed()
+      @_localStream = stream
+      @_localStreamUrl = URL.createObjectURL(stream)
+      addStreamToRtcPeerConnection()
+      @_localStreamUrlDep.changed()
       if callback?
         callback()
     , @logError
@@ -120,10 +127,7 @@ class @WebRTCSignaller
 
   onRemoteDescriptionSet: =>
     return unless @rtcPeerConnection.remoteDescription.type == 'offer'
-    if @mediaConfig?
-      @createLocalStream(@_createAnswer)
-    else
-      @_createAnswer()
+    @createLocalStream(@_createAnswer)
 
   _createAnswer: =>
     @rtcPeerConnection.createAnswer(@localDescriptionCreated, @logError)

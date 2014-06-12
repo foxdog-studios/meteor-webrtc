@@ -6,6 +6,14 @@
     <video src="{{localStream}}" autoplay></video>
     <video src="{{remoteStream}}" autoplay></video>
   </div>
+  <label> video source
+    <select name="camera">
+      <option value="">Default</option>
+      {{#each videoSources}}
+        <option value="{{id}}">Camera {{facing}} {{label}}</option>
+      {{/each}}
+    </select>
+  </label>
   <button name="start" {{canStart}}>Start</button>
   <button name="call" {{canCall}}>Call</button>
   <textarea name="message" {{canSend}}></textarea>

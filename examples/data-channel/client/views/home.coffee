@@ -17,7 +17,8 @@ mediaConfig =
   video: true
   audio: false
   mandatory:
-    frameRate: 20
+    maxWidth: 320
+    maxHeight: 240
 
 webRTCSignaller = null
 latencyProfiler = null
@@ -107,10 +108,18 @@ Template.home.rendered = ->
                                           config,
                                           dataChannelConfig,
                                           mediaConfig)
+    if MediaStreamTrack?.getSources?
+      MediaStreamTrack.getSources (sourceInfos) ->
+        videoSources = []
+        for sourceInfo in sourceInfos
+          if sourceInfo.kind == 'video'
+            videoSources.push sourceInfo
+        Session.set('videoSources', videoSources)
+
     hasWebRTC = true
   else
     console.error 'No RTCPeerConnection available :('
-  Session.set('hasWebRTC', true)
+  Session.set('hasWebRTC', hasWebRTC)
 
   latencyProfiler = new LatencyProfiler(webRTCSignaller,
                                         WebRTCSignallingStream,
@@ -162,8 +171,25 @@ Template.home.helpers
     return unless Session.get('hasWebRTC')
     latencyProfiler.getWebsocketPingAverage()
 
+  videoSources: ->
+    Session.get('videoSources')
+
 
 Template.home.events
+  'change [name="camera"]': (event) ->
+    event.preventDefault()
+    cameraId = $(event.target).val()
+    console.log cameraId
+    if cameraId != ''
+      mediaConfig.video =
+        optional: [
+          sourceId: cameraId
+        ]
+    else
+      mediaConfig.video = true
+    console.log mediaConfig
+    webRTCSignaller.setMediaConfig(mediaConfig)
+
   'click [name="start"]': (event) ->
     event.preventDefault()
     return unless webRTCSignaller?
