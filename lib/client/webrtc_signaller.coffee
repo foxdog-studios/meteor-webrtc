@@ -99,6 +99,9 @@ class @WebRTCSignaller
     @_remoteStreamDep.changed()
 
   createLocalStream: (callback) ->
+    # There may be no media config, for no video/audio
+    unless @mediaConfig?
+      return callback()
     addStreamToRtcPeerConnection = =>
       @rtcPeerConnection.addStream(@_localStream)
     if @_localStream? and _.isEqual(@mediaConfig, @_lastMediaConfig)

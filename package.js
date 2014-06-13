@@ -15,6 +15,7 @@ Package.on_use(function (api) {
   api.add_files('lib/shim.coffee', ['client']);
   api.add_files('lib/pubsub.coffee', ['client', 'server']);
   api.add_files('lib/streams.coffee', ['client', 'server']);
+  api.add_files('lib/server/permissions.coffee', ['server']);
   api.add_files('lib/client/webrtc_signaller.coffee', 'client');
 });
 
