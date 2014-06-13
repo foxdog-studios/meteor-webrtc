@@ -1,35 +1,38 @@
 class @WebRTCSignaller
-  constructor: (@channelName, @servers, @config, @dataChannelConfig,
+  constructor: (@_channelName,
+                @_servers,
+                @_config,
+                @_dataChannelConfig,
                 mediaConfig) ->
-    WebRTCSignallingStream.on @channelName, @handleMessage
+    WebRTCSignallingStream.on @_channelName, @_handleMessage
     @setMediaConfig(mediaConfig)
     @_started = false
-    @startedDep = new Deps.Dependency()
+    @_startedDep = new Deps.Dependency()
     @_inCall = false
-    @inCallDep = new Deps.Dependency()
+    @_inCallDep = new Deps.Dependency()
     @_message = null
-    @messageDep = new Deps.Dependency()
+    @_messageDep = new Deps.Dependency()
     @_dataChannelOpen = false
-    @dataChannelDep = new Deps.Dependency()
+    @_dataChannelDep = new Deps.Dependency()
     @_localStreamUrl = null
     @_localStreamUrlDep = new Deps.Dependency()
     @_remoteStream = null
     @_remoteStreamDep = new Deps.Dependency()
 
   started: ->
-    @startedDep.depend()
+    @_startedDep.depend()
     @_started
 
   inCall: ->
-    @inCallDep.depend()
+    @_inCallDep.depend()
     @_inCall
 
   getMessage: ->
-    @messageDep.depend()
+    @_messageDep.depend()
     @_message
 
   dataChannelIsOpen: ->
-    @dataChannelDep.depend()
+    @_dataChannelDep.depend()
     @_dataChannelOpen
 
   getLocalStream: ->
@@ -42,68 +45,86 @@ class @WebRTCSignaller
 
   setMediaConfig: (@mediaConfig) ->
 
-  sendMessage: (message) ->
-    WebRTCSignallingStream.emit(@channelName, message)
+  start: ->
+    @_createRtcPeerConnection()
+    if @_dataChannelConfig?
+      @_tryCreateDataChannel()
 
-  handleMessage: (message) =>
+  createOffer: ->
+    @_createLocalStream(@_createOffer)
+
+  sendData: (data) ->
+    throw 'No data channel created' unless @_dataChannel?
+    @_dataChannel.send(data)
+
+  stop: ->
+    if @_dataChannel?
+      @_dataChannel.close()
+    @_rtcPeerConnection.close()
+    @_rtcPeerConnection = null
+    @_started = false
+    @_startedDep.changed()
+    @_changeInCall(false)
+
+  _sendMessage: (message) ->
+    WebRTCSignallingStream.emit(@_channelName, message)
+
+  _handleMessage: (message) =>
     if message.sdp?
-      @handleSDP(JSON.parse(message.sdp))
+      @_handleSDP(JSON.parse(message.sdp))
     else if message.candidate?
-      @handleIceCandidate(JSON.parse(message.candidate))
+      @_handleIceCandidate(JSON.parse(message.candidate))
     else
-      @logError('Unknown message', meesage)
+      @_logError('Unknown message', meesage)
     @_changeInCall(true)
 
   _changeInCall: (state) ->
     @_inCall = state
-    @inCallDep.changed()
+    @_inCallDep.changed()
 
-  handleSDP: (sdp) =>
+  _handleSDP: (sdp) =>
     remoteDescription = new SessionDescription(sdp)
     if remoteDescription.type == 'offer'
-      # Create a new RTCPeerConnection
-      if @rtcPeerConnection?
+      # Create a new RTCPeerConnection, resetting if necessary
+      if @_rtcPeerConnection?
         @stop()
-      @createRtcPeerConnection()
-    @rtcPeerConnection.setRemoteDescription(remoteDescription,
-                                            @onRemoteDescriptionSet,
-                                            @logError)
+      @_createRtcPeerConnection()
+    @_rtcPeerConnection.setRemoteDescription(remoteDescription,
+                                            @_onRemoteDescriptionSet,
+                                            @_logError)
 
-  handleIceCandidate: (candidate) =>
+  _handleIceCandidate: (candidate) =>
     iceCandidate = new IceCandidate(candidate)
-    @rtcPeerConnection.addIceCandidate(iceCandidate)
+    @_rtcPeerConnection.addIceCandidate(iceCandidate)
 
-  onIceCandidate: (event) =>
+  _onIceCandidate: (event) =>
     return unless event.candidate
-    @sendMessage(candidate: JSON.stringify(event.candidate))
-
-  createOffer: =>
-    @createLocalStream(@_createOffer)
+    @_sendMessage(candidate: JSON.stringify(event.candidate))
 
   _createOffer: =>
-    @rtcPeerConnection.createOffer(@localDescriptionCreated, @logError)
+    @_rtcPeerConnection.createOffer(@_localDescriptionCreated, @_logError)
     @_changeInCall(true)
 
-  onDataChannel: (event) =>
-    @dataChannel = event.channel
-    @dataChannel.onmessage = @handleDataChannelMessage
-    @dataChannel.onopen = @handleDataChannelStateChange
-    @dataChannel.onclose = @handleDataChannelStateChange
+  _onDataChannel: (event) =>
+    @_dataChannel = event.channel
+    @_dataChannel.onmessage = @_handleDataChannelMessage
+    @_dataChannel.onopen = @_handleDataChannelStateChange
+    @_dataChannel.onclose = @_handleDataChannelStateChange
 
-  handleDataChannelMessage: (event) =>
+  _handleDataChannelMessage: (event) =>
     @_message = event.data
-    @messageDep.changed()
+    @_messageDep.changed()
 
-  onAddStream: (event) =>
+  _onAddStream: (event) =>
     @_remoteStream = URL.createObjectURL(event.stream)
     @_remoteStreamDep.changed()
 
-  createLocalStream: (callback) ->
+  _createLocalStream: (callback) ->
     # There may be no media config, for no video/audio
     unless @mediaConfig?
       return callback()
     addStreamToRtcPeerConnection = =>
-      @rtcPeerConnection.addStream(@_localStream)
+      @_rtcPeerConnection.addStream(@_localStream)
     if @_localStream? and _.isEqual(@mediaConfig, @_lastMediaConfig)
       # Already have a local stream and the media config has not changed, so
       # we will keep on using the same stream.
@@ -117,62 +138,47 @@ class @WebRTCSignaller
       @_localStreamUrlDep.changed()
       if callback?
         callback()
-    , @logError
+    , @_logError
 
+  _localDescriptionCreated: (description) =>
+    @_rtcPeerConnection.setLocalDescription(description,
+                                           @_onLocalDescriptionSet,
+                                           @_logError)
 
-  localDescriptionCreated: (description) =>
-    @rtcPeerConnection.setLocalDescription(description,
-                                           @onLocalDescriptionSet,
-                                           @logError)
+  _onLocalDescriptionSet: =>
+    @_sendMessage(sdp: JSON.stringify(@_rtcPeerConnection.localDescription))
 
-  onLocalDescriptionSet: =>
-    @sendMessage(sdp: JSON.stringify(@rtcPeerConnection.localDescription))
-
-  onRemoteDescriptionSet: =>
-    return unless @rtcPeerConnection.remoteDescription.type == 'offer'
-    @createLocalStream(@_createAnswer)
+  _onRemoteDescriptionSet: =>
+    return unless @_rtcPeerConnection.remoteDescription.type == 'offer'
+    @_createLocalStream(@_createAnswer)
 
   _createAnswer: =>
-    @rtcPeerConnection.createAnswer(@localDescriptionCreated, @logError)
+    @_rtcPeerConnection.createAnswer(@_localDescriptionCreated, @_logError)
 
-
-  createRtcPeerConnection: ->
-    @rtcPeerConnection = new RTCPeerConnection(@servers, @config)
-    @rtcPeerConnection.onicecandidate = @onIceCandidate
-    @rtcPeerConnection.ondatachannel = @onDataChannel
-    @rtcPeerConnection.onaddstream = @onAddStream
+  _createRtcPeerConnection: ->
+    @_rtcPeerConnection = new RTCPeerConnection(@_servers, @_config)
+    @_rtcPeerConnection.onicecandidate = @_onIceCandidate
+    @_rtcPeerConnection.ondatachannel = @_onDataChannel
+    @_rtcPeerConnection.onaddstream = @_onAddStream
     @_started = true
-    @startedDep.changed()
+    @_startedDep.changed()
 
-  start: ->
-    @createRtcPeerConnection()
+  _tryCreateDataChannel: ->
     try
-      @dataChannel = @rtcPeerConnection.createDataChannel('dataChannel',
-                                                          @dataChannelConfig)
+      @_dataChannel = @_rtcPeerConnection.createDataChannel('dataChannel',
+                                                          @_dataChannelConfig)
     catch error
-      @logError(error)
+      @_logError("Unable to create data channel:#{error}")
       return
-    @dataChannel.onmessage = @handleDataChannelMessage
-    @dataChannel.onopen = @handleDataChannelStateChange
-    @dataChannel.onclose = @handleDataChannelStateChange
+    @_dataChannel.onmessage = @_handleDataChannelMessage
+    @_dataChannel.onopen = @_handleDataChannelStateChange
+    @_dataChannel.onclose = @_handleDataChannelStateChange
 
-  stop: ->
-    @dataChannel.close()
-    @rtcPeerConnection.close()
-    @rtcPeerConnection = null
-    @_started = false
-    @startedDep.changed()
-    @_changeInCall(false)
-
-  sendData: (data) ->
-    @dataChannel.send(data)
-
-  handleDataChannelStateChange: =>
-    readyState = @dataChannel.readyState
-    console.log "data channel state: #{readyState}"
+  _handleDataChannelStateChange: =>
+    readyState = @_dataChannel.readyState
     @_dataChannelOpen = readyState == 'open'
-    @dataChannelDep.changed()
+    @_dataChannelDep.changed()
 
-  logError: (message) ->
+  _logError: (message) ->
     console.error message
 
