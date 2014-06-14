@@ -2,6 +2,8 @@
   <h1>WebRTC Signalling with Meteor demo</h1>
   <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
   <p>Specifically <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
+  <p><a href="https://github.com/foxdog-studios/meteor-webrtc">Source code on github</a></p>
+  <p>At the moment this is an audio only demo, but could easily use audio as well</p>
   <div class="videos">
     <video src="{{localStream}}" autoplay></video>
     <video src="{{remoteStream}}" autoplay></video>
@@ -18,6 +20,7 @@
   <button name="call" {{canCall}}>Call</button>
   <textarea name="message" {{canSend}}></textarea>
   <button name="send" {{canSend}}>Send message</button>
+  <p>Using data channels you can compare average roundtrip times on a pings (mean over 10 samples) between using WebRTC data channel and websockets.</p>
   <button name="latency" {{canSend}}>Test latency</button>
   <p>WebRTC average latency: {{webRTCAverageLatency}}ms</p>
   <p>Websocket average latency: {{websocketAverageLatency}}ms</p>
