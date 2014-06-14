@@ -14,11 +14,11 @@ dataChannelConfig =
   maxRetransmitTime: 0
 
 mediaConfig =
-  video: true
+  video:
+    mandatory:
+      maxWidth: 320
+      maxHeight: 240
   audio: false
-  mandatory:
-    maxWidth: 320
-    maxHeight: 240
 
 webRTCSignaller = null
 latencyProfiler = null
