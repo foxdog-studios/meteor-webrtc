@@ -53,6 +53,9 @@ class @WebRTCSignaller
   createOffer: ->
     @_createLocalStream(@_createOffer)
 
+  requestCall: ->
+    @_sendMessage(callMe: true)
+
   sendData: (data) ->
     throw 'No data channel created' unless @_dataChannel?
     @_dataChannel.send(data)
@@ -60,7 +63,8 @@ class @WebRTCSignaller
   stop: ->
     if @_dataChannel?
       @_dataChannel.close()
-    @_rtcPeerConnection.close()
+    if @_rtcPeerConnection?
+      @_rtcPeerConnection.close()
     @_rtcPeerConnection = null
     @_started = false
     @_startedDep.changed()
@@ -70,7 +74,11 @@ class @WebRTCSignaller
     WebRTCSignallingStream.emit(@_channelName, message)
 
   _handleMessage: (message) =>
-    if message.sdp?
+    if message.callMe
+      @stop()
+      @start()
+      @createOffer()
+    else if message.sdp?
       @_handleSDP(JSON.parse(message.sdp))
     else if message.candidate?
       @_handleIceCandidate(JSON.parse(message.candidate))
