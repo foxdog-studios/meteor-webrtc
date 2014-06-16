@@ -12,10 +12,13 @@ getRandomRoomName = ->
 
 Router.map ->
   @route 'root',
-    onBeforeAction: ->
-      roomName = getRandomRoomName()
-      Router.go 'home', roomName: roomName
+    where: 'server'
     path: '/'
+    action: ->
+      newName = getRandomRoomName()
+      @response.writeHead 307,
+        Location: Router.path 'home', roomName: newName
+      @response.end()
 
   @route 'home',
     path: '/:roomName'
