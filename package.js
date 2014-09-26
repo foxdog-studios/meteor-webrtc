@@ -7,6 +7,7 @@ Package.on_use(function (api) {
   api.use('underscore', ['client', 'server']);
   api.use('backbone', ['client', 'server']);
   api.use('coffeescript', ['client', 'server']);
+  api.use('mongo-livedata', ['client', 'server']);
 
   // Atmosphere packages
   api.use('streams', ['client', 'server']);
