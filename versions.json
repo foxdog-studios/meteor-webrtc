@@ -5,6 +5,10 @@
       "1.0.2"
     ],
     [
+      "arunoda:streams",
+      "0.1.17"
+    ],
+    [
       "backbone",
       "1.0.0"
     ],
@@ -89,10 +93,6 @@
       "1.0.0"
     ],
     [
-      "streams",
-      "0.0.0"
-    ],
-    [
       "tracker",
       "1.0.2"
     ],
@@ -102,6 +102,6 @@
     ]
   ],
   "pluginDependencies": [],
-  "toolVersion": "meteor-tool@1.0.32",
+  "toolVersion": "meteor-tool@1.0.33",
   "format": "1.0"
 }

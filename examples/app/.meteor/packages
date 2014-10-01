@@ -7,5 +7,6 @@ standard-app-packages
 insecure
 webrtc-signalling
 coffeescript
-iron-router
+iron:router
+arunoda:streams
 less

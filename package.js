@@ -9,8 +9,7 @@ Package.on_use(function (api) {
   api.use('coffeescript', ['client', 'server']);
   api.use('mongo-livedata', ['client', 'server']);
 
-  // Atmosphere packages
-  api.use('streams', ['client', 'server']);
+  api.use('arunoda:streams', ['client', 'server']);
 
   // Our API
   api.add_files('lib/shim.coffee', ['client']);
