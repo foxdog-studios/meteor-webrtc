@@ -3,7 +3,7 @@
 Package.describe({
   summary: 'WebRTC signalling for Meteor',
   name: 'fds:webrtc',
-  version: '1.0.0',
+  version: '1.0.1',
   git: 'https://github.com/foxdog-studios/meteor-webrtc.git'
 });
 
