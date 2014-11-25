@@ -1,21 +1,31 @@
+'use strict';
+
 Package.describe({
-  summary: 'WebRTC signalling for Meteor'
+  summary: 'WebRTC signalling for Meteor',
+  name: 'fds:webrtc',
+  version: '1.0.0',
+  git: 'https://github.com/foxdog-studios/meteor-webrtc.git'
 });
 
-Package.on_use(function (api) {
-  // Core packages
-  api.use('underscore', ['client', 'server']);
-  api.use('backbone', ['client', 'server']);
-  api.use('coffeescript', ['client', 'server']);
-  api.use('mongo-livedata', ['client', 'server']);
+Package.onUse(function (api) {
+  api.versionsFrom('1.0');
 
-  api.use('arunoda:streams', ['client', 'server']);
+  api.use([
+    'arunoda:streams@0.1.17',
+    'backbone',
+    'coffeescript',
+    'mongo-livedata',
+    'underscore'
+  ]);
 
-  // Our API
-  api.add_files('lib/shim.coffee', ['client']);
-  api.add_files('lib/pubsub.coffee', ['client', 'server']);
-  api.add_files('lib/streams.coffee', ['client', 'server']);
-  api.add_files('lib/server/permissions.coffee', ['server']);
-  api.add_files('lib/client/webrtc_signaller.coffee', 'client');
+  api.addFiles('lib/shim.coffee', 'client');
+  api.addFiles('lib/pubsub.coffee');
+  api.addFiles('lib/streams.coffee');
+  api.addFiles('lib/server/permissions.coffee', 'server');
+  api.addFiles('lib/client/webrtc_signaller.coffee', 'client');
+});
+
+Package.onTest(function (api) {
+  api.use(['fds:webrtc', 'tinytest']);
 });
 
