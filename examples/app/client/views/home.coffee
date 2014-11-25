@@ -139,11 +139,12 @@ Template.home.rendered = ->
                                         "#{roomName}-latency")
 
   Deps.autorun ->
-    message = JSON.parse(webRTCSignaller.getMessage())
-    return unless message?
-    if message.message?
-      Messages.insert(from: 'Them', message: message.message,
-                      dateCreated: new Date())
+    message = JSON.parse webRTCSignaller.getMessage()
+    if message?.message?
+      Messages.insert
+        from: 'Them'
+        message: message.message
+        dateCreated: new Date()
 
 
 Template.home.helpers

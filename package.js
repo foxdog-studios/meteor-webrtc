@@ -12,14 +12,12 @@ Package.onUse(function (api) {
 
   api.use([
     'arunoda:streams@0.1.17',
-    'backbone@1.0.0',
     'coffeescript',
     'mongo-livedata',
     'underscore'
   ]);
 
   api.addFiles('lib/shim.coffee', 'client');
-  api.addFiles('lib/pubsub.coffee');
   api.addFiles('lib/streams.coffee');
   api.addFiles('lib/server/permissions.coffee', 'server');
   api.addFiles('lib/client/webrtc_signaller.coffee', 'client');
