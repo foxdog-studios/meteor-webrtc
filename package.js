@@ -12,7 +12,7 @@ Package.onUse(function (api) {
 
   api.use([
     'arunoda:streams@0.1.17',
-    'backbone',
+    'backbone@1.0.0',
     'coffeescript',
     'mongo-livedata',
     'underscore'
