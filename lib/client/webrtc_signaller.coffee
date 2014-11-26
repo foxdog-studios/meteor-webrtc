@@ -6,42 +6,30 @@ class @WebRTCSignaller
                 mediaConfig) ->
     WebRTCSignallingStream.on @_channelName, @_handleMessage
     @setMediaConfig(mediaConfig)
-    @_started = false
-    @_startedDep = new Deps.Dependency()
-    @_inCall = false
-    @_inCallDep = new Deps.Dependency()
-    @_message = null
-    @_messageDep = new Deps.Dependency()
-    @_dataChannelOpen = false
-    @_dataChannelDep = new Deps.Dependency()
-    @_localStreamUrl = null
-    @_localStreamUrlDep = new Deps.Dependency()
-    @_remoteStream = null
-    @_remoteStreamDep = new Deps.Dependency()
+    @_started = new ReactiveVar(false)
+    @_inCall = new ReactiveVar(false)
+    @_message = new ReactiveVar(null)
+    @_dataChannelOpen = new ReactiveVar(false)
+    @_localStreamUrl = new ReactiveVar(null)
+    @_remoteStream = new ReactiveVar(null)
 
   started: ->
-    @_startedDep.depend()
-    @_started
+    @_started.get()
 
   inCall: ->
-    @_inCallDep.depend()
-    @_inCall
+    @_inCall.get()
 
   getMessage: ->
-    @_messageDep.depend()
-    @_message
+    @_message.get()
 
   dataChannelIsOpen: ->
-    @_dataChannelDep.depend()
-    @_dataChannelOpen
+    @_dataChannelOpen.get()
 
   getLocalStream: ->
-    @_localStreamUrlDep.depend()
-    @_localStreamUrl
+    @_localStreamUrl.get()
 
   getRemoteStream: ->
-    @_remoteStreamDep.depend()
-    @_remoteStream
+    @_remoteStream.get()
 
   setMediaConfig: (@mediaConfig) ->
 
@@ -66,8 +54,7 @@ class @WebRTCSignaller
     if @_rtcPeerConnection?
       @_rtcPeerConnection.close()
     @_rtcPeerConnection = null
-    @_started = false
-    @_startedDep.changed()
+    @_started.set(false)
     @_changeInCall(false)
 
   _sendMessage: (message) ->
@@ -87,8 +74,7 @@ class @WebRTCSignaller
     @_changeInCall(true)
 
   _changeInCall: (state) ->
-    @_inCall = state
-    @_inCallDep.changed()
+    @_inCall.set state
 
   _handleSDP: (sdp) =>
     remoteDescription = new SessionDescription(sdp)
@@ -120,12 +106,10 @@ class @WebRTCSignaller
     @_dataChannel.onclose = @_handleDataChannelStateChange
 
   _handleDataChannelMessage: (event) =>
-    @_message = event.data
-    @_messageDep.changed()
+    @_message.set event.data
 
   _onAddStream: (event) =>
-    @_remoteStream = URL.createObjectURL(event.stream)
-    @_remoteStreamDep.changed()
+    @_remoteStream.set URL.createObjectURL(event.stream)
 
   _createLocalStream: (callback) ->
     # There may be no media config, for no video/audio
@@ -141,9 +125,8 @@ class @WebRTCSignaller
     @_lastMediaConfig = _.clone(@mediaConfig)
     navigator.getUserMedia @mediaConfig, (stream) =>
       @_localStream = stream
-      @_localStreamUrl = URL.createObjectURL(stream)
       addStreamToRtcPeerConnection()
-      @_localStreamUrlDep.changed()
+      @_localStreamUrl.set URL.createObjectURL(stream)
       if callback?
         callback()
     , @_logError
@@ -168,8 +151,7 @@ class @WebRTCSignaller
     @_rtcPeerConnection.onicecandidate = @_onIceCandidate
     @_rtcPeerConnection.ondatachannel = @_onDataChannel
     @_rtcPeerConnection.onaddstream = @_onAddStream
-    @_started = true
-    @_startedDep.changed()
+    @_started.set(true)
 
   _tryCreateDataChannel: ->
     try
@@ -184,8 +166,7 @@ class @WebRTCSignaller
 
   _handleDataChannelStateChange: =>
     readyState = @_dataChannel.readyState
-    @_dataChannelOpen = readyState == 'open'
-    @_dataChannelDep.changed()
+    @_dataChannelOpen.set(readyState == 'open')
 
   _logError: (message) ->
     console.error message

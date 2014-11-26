@@ -3,7 +3,7 @@
 Package.describe({
   summary: 'WebRTC signalling for Meteor',
   name: 'fds:webrtc',
-  version: '1.0.1',
+  version: '1.0.2',
   git: 'https://github.com/foxdog-studios/meteor-webrtc.git'
 });
 
@@ -14,6 +14,7 @@ Package.onUse(function (api) {
     'arunoda:streams@0.1.17',
     'coffeescript',
     'mongo-livedata',
+    'reactive-var',
     'underscore'
   ]);
 
