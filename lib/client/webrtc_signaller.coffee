@@ -1,17 +1,20 @@
 class @WebRTCSignaller
-  constructor: (@_channelName,
+  constructor: (@_messageStream,
+                @_id,
                 @_servers,
                 @_config,
-                @_dataChannelConfig,
                 mediaConfig) ->
-    WebRTCSignallingStream.on @_channelName, @_handleMessage
     @setMediaConfig(mediaConfig)
     @_started = new ReactiveVar(false)
+    @_waitingForResponse = new ReactiveVar(false)
+    @_waitingForUserMedia = new ReactiveVar(false)
+    @_waitingToCreateAnswer = new ReactiveVar(false)
     @_inCall = new ReactiveVar(false)
-    @_message = new ReactiveVar(null)
-    @_dataChannelOpen = new ReactiveVar(false)
     @_localStreamUrl = new ReactiveVar(null)
     @_remoteStream = new ReactiveVar(null)
+    @_dataChannels = []
+    @_dataChannelsMap = {}
+    @_numberOfDataChannels = new ReactiveVar(@_dataChannels.length)
 
   started: ->
     @_started.get()
@@ -19,11 +22,14 @@ class @WebRTCSignaller
   inCall: ->
     @_inCall.get()
 
-  getMessage: ->
-    @_message.get()
+  waitingForUserMedia: ->
+    @_waitingForUserMedia.get()
 
-  dataChannelIsOpen: ->
-    @_dataChannelOpen.get()
+  waitingForResponse: ->
+    @_waitingForResponse.get()
+
+  waitingToCreateAnswer: ->
+    @_waitingToCreateAnswer.get()
 
   getLocalStream: ->
     @_localStreamUrl.get()
@@ -31,36 +37,45 @@ class @WebRTCSignaller
   getRemoteStream: ->
     @_remoteStream.get()
 
+  getDataChannels: ->
+    @_numberOfDataChannels.get()
+    @_dataChannels
+
   setMediaConfig: (@mediaConfig) ->
 
   start: ->
     @_createRtcPeerConnection()
-    if @_dataChannelConfig?
-      @_tryCreateDataChannel()
+
+  addDataChannel: (dataChannel) ->
+    dataChannel.create(@_rtcPeerConnection)
+    @_addDataChannel(dataChannel)
 
   createOffer: ->
     @_createLocalStream(@_createOffer)
+    @_waitingForResponse.set(true)
 
   requestCall: ->
     @_sendMessage(callMe: true)
 
-  sendData: (data) ->
-    throw 'No data channel created' unless @_dataChannel?
-    @_dataChannel.send(data)
-
   stop: ->
-    if @_dataChannel?
-      @_dataChannel.close()
+    for dataChannel in @_dataChannels
+      dataChannel.close()
     if @_rtcPeerConnection?
       @_rtcPeerConnection.close()
     @_rtcPeerConnection = null
     @_started.set(false)
     @_changeInCall(false)
 
-  _sendMessage: (message) ->
-    WebRTCSignallingStream.emit(@_channelName, message)
+  _addDataChannel: (dataChannel) ->
+    @_dataChannels.push dataChannel
+    @_dataChannelsMap[dataChannel.getLabel()] = dataChannel
+    @_numberOfDataChannels.set(@_dataChannels.length)
 
-  _handleMessage: (message) =>
+  _sendMessage: (message) ->
+    message.from = @_id
+    @_messageStream.emit(message)
+
+  handleMessage: (message) =>
     if message.callMe
       @stop()
       @start()
@@ -75,17 +90,22 @@ class @WebRTCSignaller
 
   _changeInCall: (state) ->
     @_inCall.set state
+    if state
+      @_waitingForResponse.set(false)
 
   _handleSDP: (sdp) =>
     remoteDescription = new SessionDescription(sdp)
     if remoteDescription.type == 'offer'
-      # Create a new RTCPeerConnection, resetting if necessary
+      # Create a new RTCPeerConnection, resetting if necessary. It may exist
+      # if we started before we received a call.
       if @_rtcPeerConnection?
         @stop()
       @_createRtcPeerConnection()
-    @_rtcPeerConnection.setRemoteDescription(remoteDescription,
-                                            @_onRemoteDescriptionSet,
-                                            @_logError)
+    @_rtcPeerConnection.setRemoteDescription(
+      remoteDescription,
+      @_onRemoteDescriptionSet,
+      @_logError
+    )
 
   _handleIceCandidate: (candidate) =>
     iceCandidate = new IceCandidate(candidate)
@@ -100,13 +120,12 @@ class @WebRTCSignaller
     @_changeInCall(true)
 
   _onDataChannel: (event) =>
-    @_dataChannel = event.channel
-    @_dataChannel.onmessage = @_handleDataChannelMessage
-    @_dataChannel.onopen = @_handleDataChannelStateChange
-    @_dataChannel.onclose = @_handleDataChannelStateChange
-
-  _handleDataChannelMessage: (event) =>
-    @_message.set event.data
+    dataChannel = @_dataChannelsMap[event.channel.label]
+    if dataChannel?
+      dataChannel.setDataChannel(event.channel)
+    else
+      dataChannel = ReactiveDataChannelFactory.fromRtcDataChannel(event.channel)
+      @_addDataChannel(dataChannel)
 
   _onAddStream: (event) =>
     @_remoteStream.set URL.createObjectURL(event.stream)
@@ -123,13 +142,17 @@ class @WebRTCSignaller
       addStreamToRtcPeerConnection()
       return callback()
     @_lastMediaConfig = _.clone(@mediaConfig)
+    @_waitingForUserMedia.set(true)
     navigator.getUserMedia @mediaConfig, (stream) =>
       @_localStream = stream
       addStreamToRtcPeerConnection()
       @_localStreamUrl.set URL.createObjectURL(stream)
       if callback?
         callback()
-    , @_logError
+      @_waitingForUserMedia.set(false)
+    , =>
+      @_waitingForUserMedia.set(false)
+      @_logError(arguments...)
 
   _localDescriptionCreated: (description) =>
     @_rtcPeerConnection.setLocalDescription(description,
@@ -141,10 +164,12 @@ class @WebRTCSignaller
 
   _onRemoteDescriptionSet: =>
     return unless @_rtcPeerConnection.remoteDescription.type == 'offer'
+    @_waitingToCreateAnswer.set(true)
     @_createLocalStream(@_createAnswer)
 
   _createAnswer: =>
     @_rtcPeerConnection.createAnswer(@_localDescriptionCreated, @_logError)
+    @_waitingToCreateAnswer.set(false)
 
   _createRtcPeerConnection: ->
     @_rtcPeerConnection = new RTCPeerConnection(@_servers, @_config)
@@ -152,21 +177,6 @@ class @WebRTCSignaller
     @_rtcPeerConnection.ondatachannel = @_onDataChannel
     @_rtcPeerConnection.onaddstream = @_onAddStream
     @_started.set(true)
-
-  _tryCreateDataChannel: ->
-    try
-      @_dataChannel = @_rtcPeerConnection.createDataChannel('dataChannel',
-                                                          @_dataChannelConfig)
-    catch error
-      @_logError("Unable to create data channel:#{error}")
-      return
-    @_dataChannel.onmessage = @_handleDataChannelMessage
-    @_dataChannel.onopen = @_handleDataChannelStateChange
-    @_dataChannel.onclose = @_handleDataChannelStateChange
-
-  _handleDataChannelStateChange: =>
-    readyState = @_dataChannel.readyState
-    @_dataChannelOpen.set(readyState == 'open')
 
   _logError: (message) ->
     console.error message

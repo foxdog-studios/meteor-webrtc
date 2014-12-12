@@ -3,7 +3,7 @@
 Package.describe({
   summary: 'WebRTC signalling for Meteor',
   name: 'fds:webrtc',
-  version: '1.0.2',
+  version: '2.0.0',
   git: 'https://github.com/foxdog-studios/meteor-webrtc.git'
 });
 
@@ -21,7 +21,9 @@ Package.onUse(function (api) {
   api.addFiles('lib/shim.coffee', 'client');
   api.addFiles('lib/streams.coffee');
   api.addFiles('lib/server/permissions.coffee', 'server');
+  api.addFiles('lib/client/reactive_data_channel_factory.coffee', 'client');
   api.addFiles('lib/client/webrtc_signaller.coffee', 'client');
+  api.addFiles('lib/client/multi_webrtc_signaller_manager.coffee', 'client');
 });
 
 Package.onTest(function (api) {

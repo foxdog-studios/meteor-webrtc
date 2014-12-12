@@ -35,21 +35,23 @@ mediaConfig =
 
 webRTCSignaller = null
 latencyProfiler = null
+dataChannel = null
 
 Session.set('hasWebRTC', false)
 
 
 class LatencyProfiler
-  constructor: (@webRTCSignaller, @stream, @channel) ->
+  constructor: (@_dataChannel, @stream, @channel) ->
     @webRTCPingDep = new Deps.Dependency()
     @websocketPingDep = new Deps.Dependency()
+    @_timeoutMs = 100
 
     Deps.autorun =>
-      message = JSON.parse(@webRTCSignaller.getMessage())
+      message = JSON.parse(@_dataChannel.getData())
       return unless message
       if not message.pingBack? and message.pingFrom?
         message.pingBack = true
-        webRTCSignaller.sendData(JSON.stringify(message))
+        @_dataChannel.sendData(JSON.stringify(message))
       else if message.pingBack
         diff = Date.now() - message.pingFrom
         @totalWebRTCPings++
@@ -58,7 +60,7 @@ class LatencyProfiler
         if @numWebRTCPings > 0
           Meteor.setTimeout =>
             @_pingWebRTC()
-          , 1000
+          , @_timeoutMs
         @webRTCPingDep.changed()
 
     WebRTCSignallingStream.on @channel, (message) =>
@@ -73,7 +75,7 @@ class LatencyProfiler
         if @numWebsocketPings > 0
           Meteor.setTimeout =>
             @_pingWebSocket()
-          , 1000
+          , @_timeoutMs
         @websocketPingDep.changed()
 
   getWebRTCPingAverage: ->
@@ -94,7 +96,7 @@ class LatencyProfiler
     pingFrom: Date.now()
 
   _pingWebRTC: ->
-    @webRTCSignaller.sendData(JSON.stringify(@_getMessage()))
+    @_dataChannel.sendData(JSON.stringify(@_getMessage()))
 
   _pingWebSocket: ->
     @stream.emit @channel, @_getMessage()
@@ -109,17 +111,16 @@ class LatencyProfiler
     @_ping()
 
 
-
 Template.home.rendered = ->
   roomName = Router.current().params.roomName
   Session.set('roomName', roomName)
   # Try and create an RTCPeerConnection if supported
   hasWebRTC = false
   if RTCPeerConnection?
-    webRTCSignaller = new WebRTCSignaller(roomName,
+    webRTCSignaller = SingleWebRTCSignallerFactory.create(roomName,
+                                          'master',
                                           servers,
                                           config,
-                                          dataChannelConfig,
                                           mediaConfig)
     if MediaStreamTrack?.getSources?
       MediaStreamTrack.getSources (sourceInfos) ->
@@ -133,18 +134,27 @@ Template.home.rendered = ->
   else
     console.error 'No RTCPeerConnection available :('
   Session.set('hasWebRTC', hasWebRTC)
+  return unless hasWebRTC
 
-  latencyProfiler = new LatencyProfiler(webRTCSignaller,
+  webRTCSignaller.start()
+
+  dataChannel = ReactiveDataChannelFactory.fromLabelAndConfig(
+    'test',
+    dataChannelConfig
+  )
+  webRTCSignaller.addDataChannel(dataChannel)
+
+  latencyProfiler = new LatencyProfiler(dataChannel,
                                         WebRTCSignallingStream,
                                         "#{roomName}-latency")
 
-  Deps.autorun ->
-    message = JSON.parse webRTCSignaller.getMessage()
+  @autorun ->
+    message = JSON.parse dataChannel.getData()
     if message?.message?
       Messages.insert
-        from: 'Them'
+        from: 'them'
         message: message.message
-        dateCreated: new Date()
+        datecreated: new Date()
 
 
 Template.home.helpers
@@ -168,11 +178,23 @@ Template.home.helpers
   canCall: ->
     return 'disabled' unless Session.get('hasWebRTC')
     'disabled' unless webRTCSignaller.started() \
-      and not webRTCSignaller.inCall()
+      and not webRTCSignaller.inCall() \
+      and not webRTCSignaller.waitingForResponse() \
+      and not webRTCSignaller.waitingToCreateAnswer()
 
   canSend: ->
     return 'disabled' unless Session.get('hasWebRTC')
-    'disabled' unless webRTCSignaller.dataChannelIsOpen()
+    'disabled' unless dataChannel.isOpen()
+
+  callText: ->
+    return 'Call' unless Session.get('hasWebRTC')
+    if webRTCSignaller.waitingForUserMedia()
+      return 'Waiting for you to share your camera'
+    if webRTCSignaller.waitingForResponse()
+      return 'Waiting for response'
+    if webRTCSignaller.waitingToCreateAnswer()
+      return 'Someone is calling you'
+    'Call'
 
   messages: ->
     Messages.find({}, {sort: dateCreated: -1})
@@ -218,11 +240,11 @@ Template.home.events
     event.preventDefault()
     $messageEl = $('[name="message"]')
     message = $messageEl.val()
-    webRTCSignaller.sendData(JSON.stringify(message: message))
+    dataChannel.sendData(JSON.stringify(message: message))
     Messages.insert(from: 'You', message: message, dateCreated: new Date())
     $messageEl.val('')
 
   'click [name="latency"]': (event) ->
     event.preventDefault()
-    latencyProfiler.ping(10)
+    latencyProfiler.ping(100)
 

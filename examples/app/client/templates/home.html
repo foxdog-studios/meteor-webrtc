@@ -17,7 +17,7 @@
     </select>
   </label>
   <button name="start" {{canStart}}>Start</button>
-  <button name="call" {{canCall}}>Call</button>
+  <button name="call" {{canCall}}>{{callText}}</button>
   <textarea name="message" {{canSend}}></textarea>
   <button name="send" {{canSend}}>Send message</button>
   <p>Using data channels you can compare average roundtrip times on a pings (mean over 10 samples) between using WebRTC data channel and websockets.</p>
