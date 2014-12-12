@@ -1,3 +1,5 @@
+counter = 0
+
 class @WebRTCSignaller
   constructor: (@_messageStream,
                 @_id,
@@ -15,6 +17,8 @@ class @WebRTCSignaller
     @_dataChannels = []
     @_dataChannelsMap = {}
     @_numberOfDataChannels = new ReactiveVar(@_dataChannels.length)
+    counter += 1
+    @_currentConnectionId = counter
 
   started: ->
     @_started.get()
@@ -62,9 +66,15 @@ class @WebRTCSignaller
       dataChannel.close()
     if @_rtcPeerConnection?
       @_rtcPeerConnection.close()
-    @_rtcPeerConnection = null
+      @_rtcPeerConnection = null
+    if @_localStream?
+      @_localStream.stop()
+      @_localStream = null
     @_started.set(false)
     @_changeInCall(false)
+
+  ignoreMessages: ->
+    @_ignoreMessages = true
 
   _addDataChannel: (dataChannel) ->
     @_dataChannels.push dataChannel
@@ -73,16 +83,32 @@ class @WebRTCSignaller
 
   _sendMessage: (message) ->
     message.from = @_id
+    message.connectionId = @_currentConnectionId
+    message.toConnectionId = @_currentToConnectionId
     @_messageStream.emit(message)
 
   handleMessage: (message) =>
+    if @_ignoreMessages
+      # We've set ignore messages
+      return
+    if not @_currentToConnectionId? or \
+        message.connectionId > @_currentToConnectionId
+      @_currentToConnectionId = message.connectionId
     if message.callMe
       @stop()
       @start()
       @createOffer()
     else if message.sdp?
+      if @_currentToConnectionId?
+        unless message.toConnectionId == @_currentConnectionId
+          # SDP message is not for me
+          return
       @_handleSDP(JSON.parse(message.sdp))
     else if message.candidate?
+      if @_currentToConnectionId?
+        unless message.toConnectionId == @_currentConnectionId
+          # ICE message not for me
+          return
       @_handleIceCandidate(JSON.parse(message.candidate))
     else
       @_logError('Unknown message', meesage)
@@ -172,6 +198,7 @@ class @WebRTCSignaller
     @_waitingToCreateAnswer.set(false)
 
   _createRtcPeerConnection: ->
+    @_currentConnectionId = counter
     @_rtcPeerConnection = new RTCPeerConnection(@_servers, @_config)
     @_rtcPeerConnection.onicecandidate = @_onIceCandidate
     @_rtcPeerConnection.ondatachannel = @_onDataChannel
