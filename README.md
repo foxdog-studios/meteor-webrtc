@@ -3,7 +3,7 @@ meteor-webrtc
 
 WebRTC signalling for Meteor with Reactivity!
 
-[Demo](http://webrtc-signalling.meteor.com/)
+[Demo](http://webrtc-signalling.meteor.com/) - in `examples/app`
 
 
 How to use
@@ -13,15 +13,6 @@ How to use
 var signallingChannelName = "uniqueStringTokenForThisSignallingChannel";
 
 var rtcPeerConnectionConfig = {};
-
-// Config passed to createDataChannel()
-//
-// Could be null, then no data channel will be created
-
-var dataChannelConfig = {
-  ordered: false,
-  maxRetransmitTime: 0
-};
 
 // Config passed to getUserMedia()
 //
@@ -33,11 +24,11 @@ var mediaConfig = {
   audio: false
 };
 
-var webRTCSignaller = new WebRTCSignaller(signallingChannelName,
-                                          servers,
-                                          config,
-                                          dataChannelConfig,
-                                          mediaConfig);
+var webRTCSignaller = SingleWebRTCSignaller(signallingChannelName,
+                                            'master',
+                                            servers,
+                                            config,
+                                            mediaConfig);
 // Creates the rtcPeerConnection
 webRTCSignaller.start();
 
@@ -60,7 +51,4 @@ TODO
   for a real app. Could use a user/connection based system backed a collection,
   and pass in the signalling channel to the signaller, so they would only need
   to implement the same interface.
-
-- Create data channels separately, at the moment there is only one data channel,
-  while there could be lots using different configs and names.
 
