@@ -15,6 +15,7 @@ class @WebRTCSignaller
     @_waitingForUserMedia = new ReactiveVar(false)
     @_waitingToCreateAnswer = new ReactiveVar(false)
     @_inCall = new ReactiveVar(false)
+    @_lastGetUserMediaError = new ReactiveVar(null)
     @_localStreamUrl = new ReactiveVar(null)
     @_remoteStream = new ReactiveVar(null)
     @_dataChannels = []
@@ -39,6 +40,9 @@ class @WebRTCSignaller
 
   waitingToCreateAnswer: ->
     @_waitingToCreateAnswer.get()
+
+  lastGetUserMediaError: ->
+    @_lastGetUserMediaError.get()
 
   getLocalStream: ->
     @_localStreamUrl.get()
@@ -191,9 +195,10 @@ class @WebRTCSignaller
       if callback?
         callback()
       @_waitingForUserMedia.set(false)
-    , =>
+    , (error) =>
       @_waitingForUserMedia.set(false)
-      @_logError(arguments...)
+      @_lastGetUserMediaError.set(error)
+      @_logError(error)
 
   _localDescriptionCreated: (description) =>
     @_rtcPeerConnection.setLocalDescription(description,
