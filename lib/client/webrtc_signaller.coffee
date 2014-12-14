@@ -1,4 +1,7 @@
+# Identifies unique connections in one session
 counter = 0
+# Identifies the session
+sessionId = Random.hexString(20)
 
 class @WebRTCSignaller
   constructor: (@_messageStream,
@@ -18,7 +21,9 @@ class @WebRTCSignaller
     @_dataChannelsMap = {}
     @_numberOfDataChannels = new ReactiveVar(@_dataChannels.length)
     counter += 1
-    @_currentConnectionId = counter
+    @_currentConnectionId =
+      sessionId: sessionId
+      counter: counter
 
   started: ->
     @_started.get()
@@ -87,12 +92,18 @@ class @WebRTCSignaller
     message.toConnectionId = @_currentToConnectionId
     @_messageStream.emit(message)
 
+  _connectionIdsEqual: (connectionA, connectionB) ->
+    connectionA.counter == connectionB.counter and \
+      connectionA.sessionId == connectionB.sessionId
+
   handleMessage: (message) =>
     if @_ignoreMessages
       # We've set ignore messages
+      console.log('ignoring message')
       return
     if not @_currentToConnectionId? or \
-        message.connectionId > @_currentToConnectionId
+        message.connectionId.counter > @_currentToConnectionId.counter or \
+        message.connectionId.sessionId != @_currentToConnectionId.sessionId
       @_currentToConnectionId = message.connectionId
     if message.callMe
       @stop()
@@ -100,14 +111,18 @@ class @WebRTCSignaller
       @createOffer()
     else if message.sdp?
       if @_currentToConnectionId?
-        unless message.toConnectionId == @_currentConnectionId
+        unless @_connectionIdsEqual(message.toConnectionId,
+                                    @_currentConnectionId)
           # SDP message is not for me
+          console.log('SDP no for me')
           return
       @_handleSDP(JSON.parse(message.sdp))
     else if message.candidate?
       if @_currentToConnectionId?
-        unless message.toConnectionId == @_currentConnectionId
+        unless @_connectionIdsEqual(message.toConnectionId,
+                                   @_currentConnectionId)
           # ICE message not for me
+          console.log('ICE not for me')
           return
       @_handleIceCandidate(JSON.parse(message.candidate))
     else
@@ -198,7 +213,6 @@ class @WebRTCSignaller
     @_waitingToCreateAnswer.set(false)
 
   _createRtcPeerConnection: ->
-    @_currentConnectionId = counter
     @_rtcPeerConnection = new RTCPeerConnection(@_servers, @_config)
     @_rtcPeerConnection.onicecandidate = @_onIceCandidate
     @_rtcPeerConnection.ondatachannel = @_onDataChannel
