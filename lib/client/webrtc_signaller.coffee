@@ -97,6 +97,7 @@ class @WebRTCSignaller
     @_messageStream.emit(message)
 
   _connectionIdsEqual: (connectionA, connectionB) ->
+    return true unless connectionA? and connectionB?
     connectionA.counter == connectionB.counter and \
       connectionA.sessionId == connectionB.sessionId
 

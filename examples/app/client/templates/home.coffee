@@ -15,16 +15,7 @@ dataChannelConfig =
 
 # XXX: hack for Firefox media constraints
 # see https://bugzilla.mozilla.org/show_bug.cgi?id=1006725
-videoConfig = if navigator.userAgent.search("Firefox") > -1
-  console.log 'firefox'
-  width:
-    min: 320
-    max: 320
-  height:
-    min: 240
-    max: 240
-else
-  console.log 'not firefox'
+videoConfig =
   mandatory:
     maxWidth: 320
     maxHeight: 240

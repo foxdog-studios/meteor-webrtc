@@ -30,7 +30,7 @@
     ],
     [
       "ddp",
-      "1.0.12"
+      "1.0.11"
     ],
     [
       "ejson",
@@ -66,7 +66,7 @@
     ],
     [
       "mongo",
-      "1.0.9"
+      "1.0.8"
     ],
     [
       "mongo-livedata",
@@ -98,6 +98,6 @@
     ]
   ],
   "pluginDependencies": [],
-  "toolVersion": "meteor-tool@1.0.36",
+  "toolVersion": "meteor-tool@1.0.35",
   "format": "1.0"
 }
