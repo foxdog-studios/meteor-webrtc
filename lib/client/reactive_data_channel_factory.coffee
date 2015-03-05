@@ -2,6 +2,7 @@ class ReactiveDataChannel
   constructor: ->
     @_isOpen = new ReactiveVar(false)
     @_data = new ReactiveVar(null)
+    @_listeners = []
 
   getLabel: ->
     @_label
@@ -57,6 +58,11 @@ class ReactiveDataChannel
 
   _handleMessage: (event) =>
     @_data.set event.data
+    for listener in @_listeners
+      listener(event.data)
+
+  addOnMessageListener: (listener) =>
+    @_listeners.push listener
 
   _handleStateChange: =>
     readyState = @_rtcDataChannel.readyState

@@ -9,9 +9,12 @@ else
 
 config = {}
 
-dataChannelConfig =
-  ordered: false
-  maxRetransmitTime: 0
+# Setting these options makes it not work on firefox
+#dataChannelConfig =
+#  ordered: false
+#  maxRetransmitTime: 0
+
+dataChannelConfig = {}
 
 # XXX: hack for Firefox media constraints
 # see https://bugzilla.mozilla.org/show_bug.cgi?id=1006725
@@ -31,6 +34,67 @@ dataChannel = null
 Session.set('hasWebRTC', false)
 
 
+class JpegStreamer
+  constructor: (options = {}) ->
+    _.defaults options,
+      quality: 0.9
+    @_ready = new ReactiveVar false
+    @_quality = new ReactiveVar(options.quality)
+
+  init: (@_dataChannel, @_videoEl, @_imgEl) =>
+    @_canvas = document.createElement('canvas')
+
+    @_ctx = @_canvas.getContext('2d')
+    @_ready.set true
+
+    @_otherVideo = new ReactiveVar(null)
+
+    @_sendNextVideo = true
+
+    @_dataChannel.addOnMessageListener (data) =>
+      message = JSON.parse(data)
+      return unless message?
+      switch message.type
+        when 'send'
+          @_otherVideo.set(message.dataUrl)
+          @_dataChannel.sendData(
+            JSON.stringify(
+              type: 'ack'
+            )
+          )
+        when 'ack'
+          @_sendNextVideo = true
+
+  start: =>
+    Meteor.setInterval @_update, 1000 / 30
+
+  ready: =>
+    @_ready.get()
+
+  getOtherVideo: =>
+    @_otherVideo.get()
+
+  getQuality: =>
+    @_quality.get()
+
+  setQuality: (value) =>
+    @_quality.set(value)
+
+  _update: =>
+    @_canvas.width = 267
+    @_canvas.height = 200
+    @_ctx.drawImage(@_videoEl, 0, 0, 267, 200)
+    data = @_canvas.toDataURL("image/jpeg", @_quality.get())
+    if dataChannel.isOpen() and @_sendNextVideo
+      @_dataChannel.sendData(
+        JSON.stringify(
+          type: 'send'
+          dataUrl: data
+        )
+      )
+      @_sendNextVideo = false
+
+
 class LatencyProfiler
   constructor: (@_dataChannel, @stream, @channel) ->
     @webRTCPingDep = new Deps.Dependency()
@@ -38,6 +102,8 @@ class LatencyProfiler
     @_timeoutMs = 100
 
     Deps.autorun =>
+      # TODO: FIX THIS
+      return
       message = JSON.parse(@_dataChannel.getData())
       return unless message
       if not message.pingBack? and message.pingFrom?
@@ -102,6 +168,10 @@ class LatencyProfiler
     @_ping()
 
 
+Template.home.created = ->
+  @_jpegStreamer = new JpegStreamer()
+
+
 Template.home.rendered = ->
   roomName = Router.current().params.roomName
   Session.set('roomName', roomName)
@@ -139,13 +209,20 @@ Template.home.rendered = ->
                                         WebRTCSignallingStream,
                                         "#{roomName}-latency")
 
-  @autorun ->
-    message = JSON.parse dataChannel.getData()
-    if message?.message?
-      Messages.insert
-        from: 'them'
-        message: message.message
-        datecreated: new Date()
+  @_jpegStreamer.init(
+    dataChannel,
+    @find('#local-stream'),
+    @find('#jpeg-stream')
+  )
+  @_jpegStreamer.start()
+
+  #@autorun ->
+  #  #message = JSON.parse dataChannel.getData()
+  #  #if message?.message?
+  #  #  Messages.insert
+  #  #    from: 'them'
+  #  #    message: message.message
+  #  #    datecreated: new Date()
 
 
 Template.home.helpers
@@ -186,6 +263,15 @@ Template.home.helpers
     if webRTCSignaller.waitingToCreateAnswer()
       return 'Someone is calling you'
     'Call'
+
+  jpegQuality: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getQuality()
+
+  jpegSrc: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    if jpegStreamer.ready()
+      jpegStreamer.getOtherVideo()
 
   messages: ->
     Messages.find({}, {sort: dateCreated: -1})
@@ -238,4 +324,9 @@ Template.home.events
   'click [name="latency"]': (event) ->
     event.preventDefault()
     latencyProfiler.ping(100)
+
+  'input #jpeg-quality': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setQuality(parseFloat($(event.target).val()))
+
 

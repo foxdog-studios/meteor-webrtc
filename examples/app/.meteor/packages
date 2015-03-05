@@ -8,4 +8,5 @@ iron:router
 less
 fds:webrtc
 meteor-platform
+reactive-var
 

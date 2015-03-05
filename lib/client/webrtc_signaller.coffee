@@ -155,7 +155,13 @@ class @WebRTCSignaller
 
   _handleIceCandidate: (candidate) =>
     iceCandidate = new IceCandidate(candidate)
-    @_rtcPeerConnection.addIceCandidate(iceCandidate)
+    @_rtcPeerConnection.addIceCandidate iceCandidate, @_iceSuccess, @_iceFailure
+
+  _iceSuccess: ->
+    console.log 'added ice candidiate'
+
+  _iceFailure: ->
+    console.error 'Failed to add ice candidate', arguments
 
   _onIceCandidate: (event) =>
     return unless event.candidate
