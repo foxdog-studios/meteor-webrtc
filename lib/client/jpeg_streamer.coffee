@@ -106,7 +106,7 @@ class @JpegStreamer
     @_canvas.width = width
     @_canvas.height = height
     @_ctx.drawImage(@_videoEl, 0, 0, width, height)
-    data = @_canvas.toDataURL("image/jpeg", @_quality.get())
+    data = @_canvas.toDataURL("image/webp", @_quality.get())
     dataBytesLength = byteLength(data)
     @_localJpegByteLength.set dataBytesLength
     @_localJpegDataUrl.set data
@@ -115,7 +115,9 @@ class @JpegStreamer
       if @_lastUpdatedTime?
         timeDiff = now - @_lastUpdatedTime
         if timeDiff > 1000
-          @_localJpegBytesPerSecond.set 1000 / timeDiff * @_sumOfBytesSinceLastTime
+          @_localJpegBytesPerSecond.set(
+            1000 / timeDiff * @_sumOfBytesSinceLastTime
+          )
           @_lastUpdatedTime = now
           @_sumOfBytesSinceLastTime = 0
         else
