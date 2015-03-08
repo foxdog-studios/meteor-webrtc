@@ -14,7 +14,12 @@
       <video src="{{remoteStream}}" autoplay></video>
     </div>
     <div style="padding: 10px; background-color: #0f0">
-      Remote MJPEG via WebRTC datachannel
+      Local JPEG copied from GetUserMedia video
+      <img id="local-jpeg-stream" src="{{localJpegSrc}}">
+      <p>
+        {{localJpegKb}} Kb
+      </p>
+      Remote JPEG via WebRTC datachannel
       <img id="jpeg-stream" src="{{jpegSrc}}">
       <label>
         JPEG quality

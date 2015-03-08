@@ -34,67 +34,6 @@ dataChannel = null
 Session.set('hasWebRTC', false)
 
 
-class JpegStreamer
-  constructor: (options = {}) ->
-    _.defaults options,
-      quality: 0.9
-    @_ready = new ReactiveVar false
-    @_quality = new ReactiveVar(options.quality)
-
-  init: (@_dataChannel, @_videoEl, @_imgEl) =>
-    @_canvas = document.createElement('canvas')
-
-    @_ctx = @_canvas.getContext('2d')
-    @_ready.set true
-
-    @_otherVideo = new ReactiveVar(null)
-
-    @_sendNextVideo = true
-
-    @_dataChannel.addOnMessageListener (data) =>
-      message = JSON.parse(data)
-      return unless message?
-      switch message.type
-        when 'send'
-          @_otherVideo.set(message.dataUrl)
-          @_dataChannel.sendData(
-            JSON.stringify(
-              type: 'ack'
-            )
-          )
-        when 'ack'
-          @_sendNextVideo = true
-
-  start: =>
-    Meteor.setInterval @_update, 1000 / 30
-
-  ready: =>
-    @_ready.get()
-
-  getOtherVideo: =>
-    @_otherVideo.get()
-
-  getQuality: =>
-    @_quality.get()
-
-  setQuality: (value) =>
-    @_quality.set(value)
-
-  _update: =>
-    @_canvas.width = 267
-    @_canvas.height = 200
-    @_ctx.drawImage(@_videoEl, 0, 0, 267, 200)
-    data = @_canvas.toDataURL("image/jpeg", @_quality.get())
-    if dataChannel.isOpen() and @_sendNextVideo
-      @_dataChannel.sendData(
-        JSON.stringify(
-          type: 'send'
-          dataUrl: data
-        )
-      )
-      @_sendNextVideo = false
-
-
 class LatencyProfiler
   constructor: (@_dataChannel, @stream, @channel) ->
     @webRTCPingDep = new Deps.Dependency()
@@ -267,6 +206,15 @@ Template.home.helpers
   jpegQuality: ->
     jpegStreamer = Template.instance()._jpegStreamer
     jpegStreamer.getQuality()
+
+  localJpegSrc: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getLocalJpegDataUrl()
+
+  localJpegKb: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesLength = jpegStreamer.getLocalJpegByteLength()
+    (bytesLength / 1000).toFixed(2)
 
   jpegSrc: ->
     jpegStreamer = Template.instance()._jpegStreamer

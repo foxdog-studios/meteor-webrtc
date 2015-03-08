@@ -23,6 +23,7 @@ Package.onUse(function (api) {
   api.addFiles('lib/streams.coffee');
   api.addFiles('lib/server/permissions.coffee', 'server');
   api.addFiles('lib/client/reactive_data_channel_factory.coffee', 'client');
+  api.addFiles('lib/client/jpeg_streamer.coffee', 'client');
   api.addFiles('lib/client/webrtc_signaller.coffee', 'client');
   api.addFiles('lib/client/multi_webrtc_signaller_manager.coffee', 'client');
 });
