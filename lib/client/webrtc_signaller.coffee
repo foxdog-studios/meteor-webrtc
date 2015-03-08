@@ -8,7 +8,8 @@ class @WebRTCSignaller
                 @_id,
                 @_servers,
                 @_config,
-                mediaConfig) ->
+                mediaConfig,
+                options = {}) ->
     @setMediaConfig(mediaConfig)
     @_started = new ReactiveVar(false)
     @_waitingForResponse = new ReactiveVar(false)

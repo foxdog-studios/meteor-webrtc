@@ -109,6 +109,7 @@ class LatencyProfiler
 
 Template.home.created = ->
   @_jpegStreamer = new JpegStreamer()
+  @_jpegVideoUserMediaGetter = new JpegVideoUserMediaGetter()
 
 
 Template.home.rendered = ->
@@ -148,6 +149,7 @@ Template.home.rendered = ->
                                         WebRTCSignallingStream,
                                         "#{roomName}-latency")
 
+  @_jpegVideoUserMediaGetter.start()
   @_jpegStreamer.init(
     dataChannel,
     @find('#local-stream'),
@@ -171,8 +173,8 @@ Template.home.helpers
       Meteor.absoluteUrl(Router.path('home', roomName: roomName)[1...])
 
   localStream: ->
-    return unless Session.get('hasWebRTC')
-    webRTCSignaller.getLocalStream()
+    jpegVideoUserMediaGetter = Template.instance()._jpegVideoUserMediaGetter
+    jpegVideoUserMediaGetter.getStreamUrl()
 
   remoteStream: ->
     return unless Session.get('hasWebRTC')
@@ -207,6 +209,14 @@ Template.home.helpers
     jpegStreamer = Template.instance()._jpegStreamer
     jpegStreamer.getQuality()
 
+  jpegWidth: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getWidth()
+
+  jpegHeight: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getHeight()
+
   localJpegSrc: ->
     jpegStreamer = Template.instance()._jpegStreamer
     jpegStreamer.getLocalJpegDataUrl()
@@ -215,6 +225,11 @@ Template.home.helpers
     jpegStreamer = Template.instance()._jpegStreamer
     bytesLength = jpegStreamer.getLocalJpegByteLength()
     (bytesLength / 1000).toFixed(2)
+
+  localJpegKbps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+    (bytesPerSecond / 1000).toFixed(2)
 
   jpegSrc: ->
     jpegStreamer = Template.instance()._jpegStreamer
@@ -276,5 +291,14 @@ Template.home.events
   'input #jpeg-quality': (event, template) ->
     event.preventDefault()
     template._jpegStreamer.setQuality(parseFloat($(event.target).val()))
+
+  'input #jpeg-width': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setWidth(parseFloat($(event.target).val()))
+
+  'input #jpeg-height': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setHeight(parseFloat($(event.target).val()))
+
 
 

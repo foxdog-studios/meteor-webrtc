@@ -7,7 +7,7 @@
   <div class="videos">
     <div class="stream local-stream">
       Local GetUserMedia Video
-      <video id="local-stream" src="{{localStream}}" autoplay></video>
+      <video id="local-stream" src="{{localStream}}" autoplay muted></video>
     </div>
     <div class="stream remote-stream">
       Remote WebRTC Video
@@ -17,15 +17,31 @@
       Local JPEG copied from GetUserMedia video
       <img id="local-jpeg-stream" src="{{localJpegSrc}}">
       <p>
-        {{localJpegKb}} Kb
+        JPEG size {{localJpegKb}} KB / average transfer rate per second {{localJpegKbps}} KB/s
       </p>
       Remote JPEG via WebRTC datachannel
       <img id="jpeg-stream" src="{{jpegSrc}}">
-      <label>
-        JPEG quality
-        <input type="range" min="0" max="0.99" step="0.01" id="jpeg-quality" value="{{jpegQuality}}">
-        {{jpegQuality}}
-      </label>
+      <div>
+        <label>
+          JPEG quality
+          <input type="range" min="0" max="0.99" step="0.01" id="jpeg-quality" value="{{jpegQuality}}">
+          {{jpegQuality}}
+        </label>
+      </div>
+      <div>
+        <label>
+          JPEG width
+          <input type="range" min="1" max="400" step="1" id="jpeg-width" value="{{jpegWidth}}">
+          {{jpegWidth}}px
+        </label>
+      </div>
+      <div>
+        <label>
+          JPEG height
+          <input type="range" min="1" max="400" step="1" id="jpeg-height" value="{{jpegHeight}}">
+          {{jpegHeight}}px
+        </label>
+      </div>
     </div>
   </div>
   <div>
