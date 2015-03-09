@@ -9,9 +9,22 @@ class @JpegVideoUserMediaGetter
     @_localStreamUrl = new ReactiveVar
     @_mediaConfig = _.defaults mediaConfig,
       audio: false
-      video: true
+      video:
+        mandatory:
+          maxWidth: 320
+          maxHeight: 240
+          minWidth: 320
+          minHeight: 240
 
   start: ->
+    MediaStreamTrack.getSources @_gotMediaSources
+
+  _gotMediaSources: (sources) =>
+    for source in sources
+      if source.kind == 'video' and source.facing == 'user'
+        @_mediaConfig.video.optional ?= []
+        @_mediaConfig.video.optional.push
+        break
     navigator.getUserMedia @_mediaConfig, @_gUMSuccess, @_gUMError
 
   getStreamUrl: ->
@@ -30,6 +43,7 @@ class @JpegStreamer
       quality: 0.5
       width: 100
       height: 75
+      fps: 30
     @_ready = new ReactiveVar false
     @_quality = new ReactiveVar(options.quality)
     @_localJpegDataUrl = new ReactiveVar
@@ -39,6 +53,9 @@ class @JpegStreamer
     @_sumOfBytesSinceLastTime = 0
     @_width = new ReactiveVar options.width
     @_height = new ReactiveVar options.height
+    @_fps = new ReactiveVar options.fps
+    @_timeSinceLastFrame = Infinity
+    @_lastFrameAt = 0
 
   init: (@_dataChannel, @_videoEl, @_imgEl) =>
     @_canvas = document.createElement('canvas')
@@ -65,7 +82,7 @@ class @JpegStreamer
           @_sendNextVideo = true
 
   start: =>
-    Meteor.setInterval @_update, 1000 / 30
+    requestAnimationFrame @_update
 
   ready: =>
     @_ready.get()
@@ -94,13 +111,24 @@ class @JpegStreamer
   getHeight: =>
     @_height.get()
 
+  getFps: =>
+    @_fps.get()
+
   setWidth: (width) =>
     @_width.set(width)
 
   setHeight: (height) =>
     @_height.set(height)
 
+  setFps: (fps) =>
+    @_fps.set(fps)
+
   _update: =>
+    now = Date.now()
+    if now - @_lastFrameAt < 1000 / @_fps.get()
+      requestAnimationFrame @_update
+      return
+    @_lastFrameAt = now
     width = @_width.get()
     height = @_height.get()
     @_canvas.width = width
@@ -110,7 +138,6 @@ class @JpegStreamer
     dataBytesLength = byteLength(data)
     @_localJpegByteLength.set dataBytesLength
     @_localJpegDataUrl.set data
-    now = Date.now()
     if @_dataChannel.isOpen() and @_sendNextVideo
       if @_lastUpdatedTime?
         timeDiff = now - @_lastUpdatedTime
@@ -132,5 +159,6 @@ class @JpegStreamer
         )
       )
       @_sendNextVideo = false
+    requestAnimationFrame @_update
 
 

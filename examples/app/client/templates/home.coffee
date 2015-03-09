@@ -217,19 +217,28 @@ Template.home.helpers
     jpegStreamer = Template.instance()._jpegStreamer
     jpegStreamer.getHeight()
 
+  dataChannelFps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getFps()
+
   localJpegSrc: ->
     jpegStreamer = Template.instance()._jpegStreamer
     jpegStreamer.getLocalJpegDataUrl()
 
-  localJpegKb: ->
+  localJpegKB: ->
     jpegStreamer = Template.instance()._jpegStreamer
     bytesLength = jpegStreamer.getLocalJpegByteLength()
     (bytesLength / 1000).toFixed(2)
 
-  localJpegKbps: ->
+  localJpegKBps: ->
     jpegStreamer = Template.instance()._jpegStreamer
     bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
     (bytesPerSecond / 1000).toFixed(2)
+
+  localJpegKbps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+    (bytesPerSecond * 8 / 1000).toFixed(2)
 
   jpegSrc: ->
     jpegStreamer = Template.instance()._jpegStreamer
@@ -300,5 +309,7 @@ Template.home.events
     event.preventDefault()
     template._jpegStreamer.setHeight(parseFloat($(event.target).val()))
 
-
+  'input #data-channel-fps': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setFps(parseFloat($(event.target).val()))
 
