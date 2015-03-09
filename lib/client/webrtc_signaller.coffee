@@ -8,7 +8,8 @@ class @WebRTCSignaller
                 @_id,
                 @_servers,
                 @_config,
-                mediaConfig) ->
+                mediaConfig,
+                options = {}) ->
     @setMediaConfig(mediaConfig)
     @_started = new ReactiveVar(false)
     @_waitingForResponse = new ReactiveVar(false)
@@ -155,7 +156,13 @@ class @WebRTCSignaller
 
   _handleIceCandidate: (candidate) =>
     iceCandidate = new IceCandidate(candidate)
-    @_rtcPeerConnection.addIceCandidate(iceCandidate)
+    @_rtcPeerConnection.addIceCandidate iceCandidate, @_iceSuccess, @_iceFailure
+
+  _iceSuccess: ->
+    console.log 'added ice candidiate'
+
+  _iceFailure: ->
+    console.error 'Failed to add ice candidate', arguments
 
   _onIceCandidate: (event) =>
     return unless event.candidate
@@ -202,6 +209,7 @@ class @WebRTCSignaller
       @_logError(error)
 
   _localDescriptionCreated: (description) =>
+    description.sdp = @_setBandwidth(description.sdp)
     @_rtcPeerConnection.setLocalDescription(description,
                                            @_onLocalDescriptionSet,
                                            @_logError)
@@ -227,4 +235,17 @@ class @WebRTCSignaller
 
   _logError: (message) ->
     console.error message
+
+  _setBandwidth: (sdp) ->
+    audioBandwidth = 50
+    videoBandwidth = 50
+    console.log sdp
+    sdp = sdp.replace(
+      /a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + audioBandwidth + '\r\n'
+    )
+    sdp = sdp.replace(
+      /a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + videoBandwidth + '\r\n'
+    )
+    console.log sdp
+    sdp
 

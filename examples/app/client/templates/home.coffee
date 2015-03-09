@@ -9,9 +9,12 @@ else
 
 config = {}
 
-dataChannelConfig =
-  ordered: false
-  maxRetransmitTime: 0
+# Setting these options makes it not work on firefox
+#dataChannelConfig =
+#  ordered: false
+#  maxRetransmitTime: 0
+
+dataChannelConfig = {}
 
 # XXX: hack for Firefox media constraints
 # see https://bugzilla.mozilla.org/show_bug.cgi?id=1006725
@@ -38,6 +41,8 @@ class LatencyProfiler
     @_timeoutMs = 100
 
     Deps.autorun =>
+      # TODO: FIX THIS
+      return
       message = JSON.parse(@_dataChannel.getData())
       return unless message
       if not message.pingBack? and message.pingFrom?
@@ -102,6 +107,11 @@ class LatencyProfiler
     @_ping()
 
 
+Template.home.created = ->
+  @_jpegStreamer = new JpegStreamer()
+  @_jpegVideoUserMediaGetter = new JpegVideoUserMediaGetter()
+
+
 Template.home.rendered = ->
   roomName = Router.current().params.roomName
   Session.set('roomName', roomName)
@@ -139,13 +149,21 @@ Template.home.rendered = ->
                                         WebRTCSignallingStream,
                                         "#{roomName}-latency")
 
-  @autorun ->
-    message = JSON.parse dataChannel.getData()
-    if message?.message?
-      Messages.insert
-        from: 'them'
-        message: message.message
-        datecreated: new Date()
+  @_jpegVideoUserMediaGetter.start()
+  @_jpegStreamer.init(
+    dataChannel,
+    @find('#local-stream'),
+    @find('#jpeg-stream')
+  )
+  @_jpegStreamer.start()
+
+  #@autorun ->
+  #  #message = JSON.parse dataChannel.getData()
+  #  #if message?.message?
+  #  #  Messages.insert
+  #  #    from: 'them'
+  #  #    message: message.message
+  #  #    datecreated: new Date()
 
 
 Template.home.helpers
@@ -155,8 +173,8 @@ Template.home.helpers
       Meteor.absoluteUrl(Router.path('home', roomName: roomName)[1...])
 
   localStream: ->
-    return unless Session.get('hasWebRTC')
-    webRTCSignaller.getLocalStream()
+    jpegVideoUserMediaGetter = Template.instance()._jpegVideoUserMediaGetter
+    jpegVideoUserMediaGetter.getStreamUrl()
 
   remoteStream: ->
     return unless Session.get('hasWebRTC')
@@ -186,6 +204,46 @@ Template.home.helpers
     if webRTCSignaller.waitingToCreateAnswer()
       return 'Someone is calling you'
     'Call'
+
+  jpegQuality: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getQuality()
+
+  jpegWidth: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getWidth()
+
+  jpegHeight: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getHeight()
+
+  dataChannelFps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getFps()
+
+  localJpegSrc: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    jpegStreamer.getLocalJpegDataUrl()
+
+  localJpegKB: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesLength = jpegStreamer.getLocalJpegByteLength()
+    (bytesLength / 1000).toFixed(2)
+
+  localJpegKBps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+    (bytesPerSecond / 1000).toFixed(2)
+
+  localJpegKbps: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+    (bytesPerSecond * 8 / 1000).toFixed(2)
+
+  jpegSrc: ->
+    jpegStreamer = Template.instance()._jpegStreamer
+    if jpegStreamer.ready()
+      jpegStreamer.getOtherVideo()
 
   messages: ->
     Messages.find({}, {sort: dateCreated: -1})
@@ -238,4 +296,20 @@ Template.home.events
   'click [name="latency"]': (event) ->
     event.preventDefault()
     latencyProfiler.ping(100)
+
+  'input #jpeg-quality': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setQuality(parseFloat($(event.target).val()))
+
+  'input #jpeg-width': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setWidth(parseFloat($(event.target).val()))
+
+  'input #jpeg-height': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setHeight(parseFloat($(event.target).val()))
+
+  'input #data-channel-fps': (event, template) ->
+    event.preventDefault()
+    template._jpegStreamer.setFps(parseFloat($(event.target).val()))
 
