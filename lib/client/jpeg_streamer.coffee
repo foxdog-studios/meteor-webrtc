@@ -41,9 +41,10 @@ class @JpegStreamer
   constructor: (options = {}) ->
     _.defaults options,
       quality: 0.5
-      width: 100
-      height: 75
+      width: 200
+      height: 150
       fps: 30
+      shouldSendVideo: true
     @_ready = new ReactiveVar false
     @_quality = new ReactiveVar(options.quality)
     @_localJpegDataUrl = new ReactiveVar
@@ -56,15 +57,14 @@ class @JpegStreamer
     @_fps = new ReactiveVar options.fps
     @_timeSinceLastFrame = Infinity
     @_lastFrameAt = 0
+    @_shoulSendVideo = new ReactiveVar options.shouldSendVideo
+    @_otherVideo = new ReactiveVar(null)
+    @_canvas = document.createElement('canvas')
+    @_ctx = @_canvas.getContext('2d')
 
   init: (@_dataChannel, @_videoEl, @_imgEl) =>
-    @_canvas = document.createElement('canvas')
 
-    @_ctx = @_canvas.getContext('2d')
     @_ready.set true
-
-    @_otherVideo = new ReactiveVar(null)
-
     @_sendNextVideo = true
 
     @_dataChannel.addOnMessageListener (data) =>
@@ -114,6 +114,9 @@ class @JpegStreamer
   getFps: =>
     @_fps.get()
 
+  getShouldSendVideo: =>
+    @_shoulSendVideo.get()
+
   setWidth: (width) =>
     @_width.set(width)
 
@@ -123,9 +126,12 @@ class @JpegStreamer
   setFps: (fps) =>
     @_fps.set(fps)
 
+  setShouldSendVideo: (state) =>
+    @_shoulSendVideo.set state
+
   _update: =>
     now = Date.now()
-    if now - @_lastFrameAt < 1000 / @_fps.get()
+    if not @_shoulSendVideo.get() or  now - @_lastFrameAt < 1000 / @_fps.get()
       requestAnimationFrame @_update
       return
     @_lastFrameAt = now
@@ -158,7 +164,9 @@ class @JpegStreamer
           dataUrl: data
         )
       )
-      @_sendNextVideo = false
+      # XXX: Should be set to false, trying to find errors atm tho.
+      @_sendNextVideo = true
+
     requestAnimationFrame @_update
 
 

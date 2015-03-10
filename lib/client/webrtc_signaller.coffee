@@ -20,6 +20,7 @@ class @WebRTCSignaller
     @_localStreamUrl = new ReactiveVar(null)
     @_remoteStream = new ReactiveVar(null)
     @_dataChannels = []
+    @_pendingDataChannels = []
     @_dataChannelsMap = {}
     @_numberOfDataChannels = new ReactiveVar(@_dataChannels.length)
     counter += 1
@@ -61,7 +62,10 @@ class @WebRTCSignaller
     @_createRtcPeerConnection()
 
   addDataChannel: (dataChannel) ->
-    dataChannel.create(@_rtcPeerConnection)
+    if @_rtcPeerConnection?
+      dataChannel.create(@_rtcPeerConnection)
+    else
+      @_pendingDataChannels.push dataChannel
     @_addDataChannel(dataChannel)
 
   createOffer: ->
@@ -231,6 +235,8 @@ class @WebRTCSignaller
     @_rtcPeerConnection.onicecandidate = @_onIceCandidate
     @_rtcPeerConnection.ondatachannel = @_onDataChannel
     @_rtcPeerConnection.onaddstream = @_onAddStream
+    for dataChannel in @_dataChannels
+      dataChannel.create(@_rtcPeerConnection)
     @_started.set(true)
 
   _logError: (message) ->
@@ -239,13 +245,11 @@ class @WebRTCSignaller
   _setBandwidth: (sdp) ->
     audioBandwidth = 50
     videoBandwidth = 50
-    console.log sdp
     sdp = sdp.replace(
       /a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + audioBandwidth + '\r\n'
     )
     sdp = sdp.replace(
       /a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + videoBandwidth + '\r\n'
     )
-    console.log sdp
     sdp
 
