@@ -14,33 +14,33 @@
       <video src="{{remoteStream}}" autoplay></video>
     </div>
     <div style="padding: 10px; background-color: #0f0">
-      Local JPEG copied from GetUserMedia video
-      <img id="local-jpeg-stream" src="{{localJpegSrc}}">
+      Local image copied from GetUserMedia video
+      <img id="local-image-stream" src="{{localImageSrc}}">
       <p>
-        JPEG size {{localJpegKB}} KB / average transfer rate per second {{localJpegKBps}} KB/s
-        / {{localJpegKbps}} Kb/s
+        image size {{localImageKB}} KB / average transfer rate per second {{localImageKBps}} KB/s
+        / {{localImageKbps}} Kb/s
       </p>
-      Remote JPEG via WebRTC datachannel
-      <img id="jpeg-stream" src="{{jpegSrc}}">
+      Remote image via WebRTC datachannel
+      <img id="image-stream" src="{{imageSrc}}">
       <div>
         <label>
-          JPEG quality
-          <input type="range" min="0" max="0.99" step="0.01" id="jpeg-quality" value="{{jpegQuality}}">
-          {{jpegQuality}}
+          image quality
+          <input type="range" min="0" max="0.99" step="0.01" id="image-quality" value="{{imageQuality}}">
+          {{imageQuality}}
         </label>
       </div>
       <div>
         <label>
-          JPEG width
-          <input type="range" min="1" max="400" step="1" id="jpeg-width" value="{{jpegWidth}}">
-          {{jpegWidth}}px
+          image width
+          <input type="range" min="1" max="400" step="1" id="image-width" value="{{imageWidth}}">
+          {{imageWidth}}px
         </label>
       </div>
       <div>
         <label>
-          JPEG height
-          <input type="range" min="1" max="400" step="1" id="jpeg-height" value="{{jpegHeight}}">
-          {{jpegHeight}}px
+          image height
+          <input type="range" min="1" max="400" step="1" id="image-height" value="{{imageHeight}}">
+          {{imageHeight}}px
         </label>
       </div>
       <div>

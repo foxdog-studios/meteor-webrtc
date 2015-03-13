@@ -108,8 +108,8 @@ class LatencyProfiler
 
 
 Template.home.created = ->
-  @_jpegStreamer = new JpegStreamer()
-  @_jpegVideoUserMediaGetter = new JpegVideoUserMediaGetter()
+  @_imageStreamer = new ImageStreamer()
+  @_imageVideoUserMediaGetter = new ImageVideoUserMediaGetter()
 
 
 Template.home.rendered = ->
@@ -149,13 +149,13 @@ Template.home.rendered = ->
                                         WebRTCSignallingStream,
                                         "#{roomName}-latency")
 
-  @_jpegVideoUserMediaGetter.start()
-  @_jpegStreamer.init(
+  @_imageVideoUserMediaGetter.start()
+  @_imageStreamer.init(
     dataChannel,
     @find('#local-stream'),
-    @find('#jpeg-stream')
+    @find('#image-stream')
   )
-  @_jpegStreamer.start()
+  @_imageStreamer.start()
 
   #@autorun ->
   #  #message = JSON.parse dataChannel.getData()
@@ -173,8 +173,8 @@ Template.home.helpers
       Meteor.absoluteUrl(Router.path('home', roomName: roomName)[1...])
 
   localStream: ->
-    jpegVideoUserMediaGetter = Template.instance()._jpegVideoUserMediaGetter
-    jpegVideoUserMediaGetter.getStreamUrl()
+    imageVideoUserMediaGetter = Template.instance()._imageVideoUserMediaGetter
+    imageVideoUserMediaGetter.getStreamUrl()
 
   remoteStream: ->
     return unless Session.get('hasWebRTC')
@@ -205,45 +205,45 @@ Template.home.helpers
       return 'Someone is calling you'
     'Call'
 
-  jpegQuality: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    jpegStreamer.getQuality()
+  imageQuality: ->
+    imageStreamer = Template.instance()._imageStreamer
+    imageStreamer.getQuality()
 
-  jpegWidth: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    jpegStreamer.getWidth()
+  imageWidth: ->
+    imageStreamer = Template.instance()._imageStreamer
+    imageStreamer.getWidth()
 
-  jpegHeight: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    jpegStreamer.getHeight()
+  imageHeight: ->
+    imageStreamer = Template.instance()._imageStreamer
+    imageStreamer.getHeight()
 
   dataChannelFps: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    jpegStreamer.getFps()
+    imageStreamer = Template.instance()._imageStreamer
+    imageStreamer.getFps()
 
-  localJpegSrc: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    jpegStreamer.getLocalJpegDataUrl()
+  localImageSrc: ->
+    imageStreamer = Template.instance()._imageStreamer
+    imageStreamer.getLocalImageDataUrl()
 
-  localJpegKB: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    bytesLength = jpegStreamer.getLocalJpegByteLength()
+  localImageKB: ->
+    imageStreamer = Template.instance()._imageStreamer
+    bytesLength = imageStreamer.getLocalImageByteLength()
     (bytesLength / 1000).toFixed(2)
 
-  localJpegKBps: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+  localImageKBps: ->
+    imageStreamer = Template.instance()._imageStreamer
+    bytesPerSecond = imageStreamer.getLocalImageBytesPerSecond()
     (bytesPerSecond / 1000).toFixed(2)
 
-  localJpegKbps: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    bytesPerSecond = jpegStreamer.getLocalJpegBytesPerSecond()
+  localImageKbps: ->
+    imageStreamer = Template.instance()._imageStreamer
+    bytesPerSecond = imageStreamer.getLocalImageBytesPerSecond()
     (bytesPerSecond * 8 / 1000).toFixed(2)
 
-  jpegSrc: ->
-    jpegStreamer = Template.instance()._jpegStreamer
-    if jpegStreamer.ready()
-      jpegStreamer.getOtherVideo()
+  imageSrc: ->
+    imageStreamer = Template.instance()._imageStreamer
+    if imageStreamer.ready()
+      imageStreamer.getOtherVideo()
 
   messages: ->
     Messages.find({}, {sort: dateCreated: -1})
@@ -297,19 +297,19 @@ Template.home.events
     event.preventDefault()
     latencyProfiler.ping(100)
 
-  'input #jpeg-quality': (event, template) ->
+  'input #image-quality': (event, template) ->
     event.preventDefault()
-    template._jpegStreamer.setQuality(parseFloat($(event.target).val()))
+    template._imageStreamer.setQuality(parseFloat($(event.target).val()))
 
-  'input #jpeg-width': (event, template) ->
+  'input #image-width': (event, template) ->
     event.preventDefault()
-    template._jpegStreamer.setWidth(parseFloat($(event.target).val()))
+    template._imageStreamer.setWidth(parseFloat($(event.target).val()))
 
-  'input #jpeg-height': (event, template) ->
+  'input #image-height': (event, template) ->
     event.preventDefault()
-    template._jpegStreamer.setHeight(parseFloat($(event.target).val()))
+    template._imageStreamer.setHeight(parseFloat($(event.target).val()))
 
   'input #data-channel-fps': (event, template) ->
     event.preventDefault()
-    template._jpegStreamer.setFps(parseFloat($(event.target).val()))
+    template._imageStreamer.setFps(parseFloat($(event.target).val()))
 
