@@ -23,6 +23,15 @@ Router.map ->
         Location: Router.path 'home', roomName: newName
       @response.end()
 
+  @route 'imageRoot',
+    where: 'server'
+    path: '/image-stream'
+    action: ->
+      newName = getRandomRoomName()
+      @response.writeHead 307,
+        Location: Router.path 'ImageStream', roomName: newName
+      @response.end()
+
   @route 'multiDraw',
     path: '/multi_draw'
 
@@ -31,4 +40,7 @@ Router.map ->
 
   @route 'home',
     path: '/:roomName'
+
+  @route 'ImageStream',
+    path: '/image-stream/:roomName'
 

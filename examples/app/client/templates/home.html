@@ -4,8 +4,7 @@
       <h1>WebRTC Signalling with Meteor demo</h1>
       <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
       <p>Specifically open in another device/window <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
-      <p><a href="https://github.com/foxdog-studios/meteor-webrtc">Source code on github</a></p>
-      <p>At the moment this is an video only demo, but could easily use audio as well</p>
+      <p>This demo sets up a video and audio call with one other person on who is at the same URL</p>
       <button class="btn btn-info" name="call" {{canCall}}>{{callText}}</button>
     </div>
   </div>
@@ -21,66 +20,6 @@
         <h2>Remote WebRTC Video Stream</h2>
         <video src="{{remoteStream}}" autoplay></video>
       </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-xs-6">
-      <h2>Local image copied from GetUserMedia video</h2>
-      <img id="local-image-stream" src="{{localImageSrc}}">
-      <p>
-        image size {{localImageKB}} KB / average transfer rate per second {{localImageKBps}} KB/s
-        / {{localImageKbps}} Kb/s
-      </p>
-      <form class="form-horizontal">
-        <div class="form-group">
-          <label for="image-quality" class="col-xs-2 control-label">
-            image quality
-          </label>
-          <div class="col-xs-8">
-            <input class="form-control" type="range" min="0" max="0.99" step="0.01" id="image-quality" value="{{imageQuality}}">
-          </div>
-          <div class="col-xs-2">
-            {{imageQuality}}
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="image-width" class="col-xs-2 control-label">
-            image width
-          </label>
-          <div class="col-xs-8">
-            <input class="form-control" type="range" min="1" max="400" step="1" id="image-width" value="{{imageWidth}}">
-          </div>
-          <div class="col-xs-2">
-            {{imageWidth}}px
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="image-height" class="col-xs-2 control-label">
-            image height
-          </label>
-          <div class="col-xs-8">
-            <input class="form-control" type="range" min="1" max="400" step="1" id="image-height" value="{{imageHeight}}">
-          </div>
-          <div class="col-xs-2">
-            {{imageHeight}}px
-          </div>
-        </div>
-        <div class="form-group">
-          <label id="data-channel-fps" class="col-xs-2 control-label">
-            FPS
-          </label>
-          <div class="col-xs-8">
-            <input class="form-control" type="range" min="1" max="30" step="1" id="data-channel-fps" value="{{dataChannelFps}}">
-          </div>
-          <div class="col-xs-2">
-            {{dataChannelFps}}fps
-          </div>
-        </div>
-      </form>
-    </div>
-    <div class="col-xs-6">
-      <h2>Remote image via WebRTC datachannel</h2>
-      <img id="image-stream" src="{{imageSrc}}">
     </div>
   </div>
 </template>
