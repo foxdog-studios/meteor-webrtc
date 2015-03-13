@@ -10,6 +10,12 @@ class @WebRTCSignaller
                 @_config,
                 mediaConfig,
                 options = {}) ->
+
+    _.defaults options,
+      audioBandwidth: null
+      videoBandwidth: null
+    @_audioBandwidth = options.audioBandwidth
+    @_videoBandwidth = options.videoBandwidth
     @setMediaConfig(mediaConfig)
     @_started = new ReactiveVar(false)
     @_waitingForResponse = new ReactiveVar(false)
@@ -213,7 +219,7 @@ class @WebRTCSignaller
       @_logError(error)
 
   _localDescriptionCreated: (description) =>
-    description.sdp = @_setBandwidth(description.sdp)
+    description.sdp = @_maybeSetBandwidthLimits(description.sdp)
     @_rtcPeerConnection.setLocalDescription(description,
                                            @_onLocalDescriptionSet,
                                            @_logError)
@@ -242,14 +248,14 @@ class @WebRTCSignaller
   _logError: (message) ->
     console.error message
 
-  _setBandwidth: (sdp) ->
-    audioBandwidth = 50
-    videoBandwidth = 50
-    sdp = sdp.replace(
-      /a=mid:audio\r\n/g, 'a=mid:audio\r\nb=AS:' + audioBandwidth + '\r\n'
-    )
-    sdp = sdp.replace(
-      /a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:' + videoBandwidth + '\r\n'
-    )
+  _maybeSetBandwidthLimits: (sdp) ->
+    if @_audioBandwidth?
+      sdp = sdp.replace(
+        /a=mid:audio\r\n/g, "a=mid:audio\r\nb=AS:#{@_audioBandwidth}\r\n"
+      )
+    if @_videoBandwidth?
+      sdp = sdp.replace(
+        /a=mid:video\r\n/g, "a=mid:video\r\nb=AS:#{@_videoBandwidth}\r\n"
+      )
     sdp
 

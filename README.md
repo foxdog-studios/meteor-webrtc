@@ -10,6 +10,8 @@ How to use
 ----------
 
 ```javascript
+
+
 var signallingChannelName = "uniqueStringTokenForThisSignallingChannel";
 
 var rtcPeerConnectionConfig = {};
@@ -21,10 +23,11 @@ var rtcPeerConnectionConfig = {};
 
 var mediaConfig = {
   video: true,
-  audio: false
+  audio: true
 };
 
-var webRTCSignaller = SingleWebRTCSignaller(signallingChannelName,
+var webRTCSignaller = SingleWebRTCSignallerFactory.create(
+                                            signallingChannelName,
                                             'master',
                                             servers,
                                             config,

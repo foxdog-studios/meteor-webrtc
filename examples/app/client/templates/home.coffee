@@ -28,84 +28,9 @@ mediaConfig =
   audio: false
 
 webRTCSignaller = null
-latencyProfiler = null
 dataChannel = null
 
 Session.set('hasWebRTC', false)
-
-
-class LatencyProfiler
-  constructor: (@_dataChannel, @stream, @channel) ->
-    @webRTCPingDep = new Deps.Dependency()
-    @websocketPingDep = new Deps.Dependency()
-    @_timeoutMs = 100
-
-    Deps.autorun =>
-      # TODO: FIX THIS
-      return
-      message = JSON.parse(@_dataChannel.getData())
-      return unless message
-      if not message.pingBack? and message.pingFrom?
-        message.pingBack = true
-        @_dataChannel.sendData(JSON.stringify(message))
-      else if message.pingBack
-        diff = Date.now() - message.pingFrom
-        @totalWebRTCPings++
-        @numWebRTCPings--
-        @sumWebRTCPings += diff
-        if @numWebRTCPings > 0
-          Meteor.setTimeout =>
-            @_pingWebRTC()
-          , @_timeoutMs
-        @webRTCPingDep.changed()
-
-    WebRTCSignallingStream.on @channel, (message) =>
-      if not message.pingBack?
-        message.pingBack = true
-        WebRTCSignallingStream.emit @channel, message
-      else
-        diff = Date.now() - message.pingFrom
-        @totalWebsocketPings++
-        @numWebsocketPings--
-        @sumWebsocketPings += diff
-        if @numWebsocketPings > 0
-          Meteor.setTimeout =>
-            @_pingWebSocket()
-          , @_timeoutMs
-        @websocketPingDep.changed()
-
-  getWebRTCPingAverage: ->
-    @webRTCPingDep.depend()
-    return unless @totalWebRTCPings > 0
-    @sumWebRTCPings / @totalWebRTCPings
-
-  getWebsocketPingAverage: ->
-    @websocketPingDep.depend()
-    return unless @totalWebsocketPings > 0
-    @sumWebsocketPings / @totalWebsocketPings
-
-  _ping: ->
-    @_pingWebRTC()
-    @_pingWebSocket()
-
-  _getMessage: ->
-    pingFrom: Date.now()
-
-  _pingWebRTC: ->
-    @_dataChannel.sendData(JSON.stringify(@_getMessage()))
-
-  _pingWebSocket: ->
-    @stream.emit @channel, @_getMessage()
-
-  ping: (numPings=1) ->
-    @numWebRTCPings = numPings
-    @numWebsocketPings = numPings
-    @totalWebRTCPings = 0
-    @totalWebsocketPings = 0
-    @sumWebRTCPings = 0
-    @sumWebsocketPings = 0
-    @_ping()
-
 
 Template.home.created = ->
   @_imageStreamer = new ImageStreamer()
@@ -123,14 +48,6 @@ Template.home.rendered = ->
                                           servers,
                                           config,
                                           mediaConfig)
-    if MediaStreamTrack?.getSources?
-      MediaStreamTrack.getSources (sourceInfos) ->
-        videoSources = []
-        for sourceInfo in sourceInfos
-          if sourceInfo.kind == 'video'
-            videoSources.push sourceInfo
-        Session.set('videoSources', videoSources)
-
     hasWebRTC = true
   else
     console.error 'No RTCPeerConnection available :('
@@ -145,10 +62,6 @@ Template.home.rendered = ->
   )
   webRTCSignaller.addDataChannel(dataChannel)
 
-  latencyProfiler = new LatencyProfiler(dataChannel,
-                                        WebRTCSignallingStream,
-                                        "#{roomName}-latency")
-
   @_imageVideoUserMediaGetter.start()
   @_imageStreamer.init(
     dataChannel,
@@ -156,14 +69,6 @@ Template.home.rendered = ->
     @find('#image-stream')
   )
   @_imageStreamer.start()
-
-  #@autorun ->
-  #  #message = JSON.parse dataChannel.getData()
-  #  #if message?.message?
-  #  #  Messages.insert
-  #  #    from: 'them'
-  #  #    message: message.message
-  #  #    datecreated: new Date()
 
 
 Template.home.helpers
@@ -180,10 +85,6 @@ Template.home.helpers
     return unless Session.get('hasWebRTC')
     webRTCSignaller.getRemoteStream()
 
-  canStart: ->
-    return 'disabled' unless Session.get('hasWebRTC')
-    'disabled' if webRTCSignaller.started()
-
   canCall: ->
     return 'disabled' unless Session.get('hasWebRTC')
     'disabled' unless webRTCSignaller.started() \
@@ -196,14 +97,15 @@ Template.home.helpers
     'disabled' unless dataChannel.isOpen()
 
   callText: ->
-    return 'Call' unless Session.get('hasWebRTC')
+    unless Session.get('hasWebRTC')
+      return "Your browser doesn't suuport Web RTC :("
     if webRTCSignaller.waitingForUserMedia()
       return 'Waiting for you to share your camera'
     if webRTCSignaller.waitingForResponse()
       return 'Waiting for response'
     if webRTCSignaller.waitingToCreateAnswer()
       return 'Someone is calling you'
-    'Call'
+    'Begin call with the other person in the room'
 
   imageQuality: ->
     imageStreamer = Template.instance()._imageStreamer
@@ -245,57 +147,12 @@ Template.home.helpers
     if imageStreamer.ready()
       imageStreamer.getOtherVideo()
 
-  messages: ->
-    Messages.find({}, {sort: dateCreated: -1})
-
-  webRTCAverageLatency: ->
-    return unless Session.get('hasWebRTC')
-    latencyProfiler.getWebRTCPingAverage()
-
-  websocketAverageLatency: ->
-    return unless Session.get('hasWebRTC')
-    latencyProfiler.getWebsocketPingAverage()
-
-  videoSources: ->
-    Session.get('videoSources')
-
 
 Template.home.events
-  'change [name="camera"]': (event) ->
-    event.preventDefault()
-    cameraId = $(event.target).val()
-    console.log cameraId
-    if cameraId != ''
-      mediaConfig.video =
-        optional: [
-          sourceId: cameraId
-        ]
-    else
-      mediaConfig.video = true
-    console.log mediaConfig
-    webRTCSignaller.setMediaConfig(mediaConfig)
-
-  'click [name="start"]': (event) ->
-    event.preventDefault()
-    return unless webRTCSignaller?
-    webRTCSignaller.start()
-
   'click [name="call"]': (event) ->
     event.preventDefault()
     return unless webRTCSignaller?
     webRTCSignaller.createOffer()
-
-  'click [name="send"]': (event) ->
-    event.preventDefault()
-    $messageEl = $('[name="message"]')
-    message = $messageEl.val()
-    dataChannel.sendData(JSON.stringify(message: message))
-    Messages.insert(from: 'You', message: message, dateCreated: new Date())
-    $messageEl.val('')
-
-  'click [name="latency"]': (event) ->
-    event.preventDefault()
-    latencyProfiler.ping(100)
 
   'input #image-quality': (event, template) ->
     event.preventDefault()
