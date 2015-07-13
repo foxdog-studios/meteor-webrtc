@@ -8,13 +8,14 @@ class MessageStreamProxy
 
 # A signaller who will only listen to messages from master on it's channel
 class @SingleWebRTCSignallerFactory
-  @create: (channelName, id, servers, config, mediaConfig) ->
+  @create: (channelName, id, servers, config, mediaConfig, options) ->
     signaller = new WebRTCSignaller(
         new MessageStreamProxy(channelName, 'master'),
         id,
         servers,
         config,
-        mediaConfig
+        mediaConfig,
+        options
     )
     WebRTCSignallingStream.on channelName, (message) ->
       if message._to == id or message.callMe
