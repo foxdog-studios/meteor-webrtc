@@ -1,79 +1,26 @@
 <template name="home">
-  <h1>WebRTC Signalling with Meteor demo</h1>
-  <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
-  <p>Specifically <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
-  <p><a href="https://github.com/foxdog-studios/meteor-webrtc">Source code on github</a></p>
-  <p>At the moment this is an audio only demo, but could easily use audio as well</p>
-  <div class="videos">
-    <div class="stream local-stream">
-      Local GetUserMedia Video
-      <video id="local-stream" src="{{localStream}}" autoplay muted></video>
+  <div class="row">
+    <div class="col-md-12">
+      <h1>WebRTC Signalling with Meteor demo</h1>
+      <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
+      <p>Specifically open in another device/window <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
+      <p>This demo sets up a video and audio call with one other person on who is at the same URL</p>
+      <button class="btn btn-info" name="call" {{canCall}}>{{callText}}</button>
     </div>
-    <div class="stream remote-stream">
-      Remote WebRTC Video
-      <video src="{{remoteStream}}" autoplay></video>
+  </div>
+  <div class="row">
+    <div class="col-xs-6">
+      <div class="stream local-stream">
+        <h2>Local GetUserMedia Video</h2>
+        <video id="local-stream" src="{{localStream}}" autoplay muted></video>
+      </div>
     </div>
-    <div style="padding: 10px; background-color: #0f0">
-      Local JPEG copied from GetUserMedia video
-      <img id="local-jpeg-stream" src="{{localJpegSrc}}">
-      <p>
-        JPEG size {{localJpegKB}} KB / average transfer rate per second {{localJpegKBps}} KB/s
-        / {{localJpegKbps}} Kb/s
-      </p>
-      Remote JPEG via WebRTC datachannel
-      <img id="jpeg-stream" src="{{jpegSrc}}">
-      <div>
-        <label>
-          JPEG quality
-          <input type="range" min="0" max="0.99" step="0.01" id="jpeg-quality" value="{{jpegQuality}}">
-          {{jpegQuality}}
-        </label>
-      </div>
-      <div>
-        <label>
-          JPEG width
-          <input type="range" min="1" max="400" step="1" id="jpeg-width" value="{{jpegWidth}}">
-          {{jpegWidth}}px
-        </label>
-      </div>
-      <div>
-        <label>
-          JPEG height
-          <input type="range" min="1" max="400" step="1" id="jpeg-height" value="{{jpegHeight}}">
-          {{jpegHeight}}px
-        </label>
-      </div>
-      <div>
-        <label>
-          fps
-          <input type="range" min="1" max="30" step="1" id="data-channel-fps" value="{{dataChannelFps}}">
-          {{dataChannelFps}}fps
-        </label>
+    <div class="col-xs-6">
+      <div class="stream remote-stream">
+        <h2>Remote WebRTC Video Stream</h2>
+        <video src="{{remoteStream}}" autoplay></video>
       </div>
     </div>
   </div>
-  <div>
-  </div>
-  <label> video source
-    <select name="camera">
-      <option value="">Default</option>
-      {{#each videoSources}}
-        <option value="{{id}}">Camera {{facing}} {{label}}</option>
-      {{/each}}
-    </select>
-  </label>
-  <button name="start" {{canStart}}>Start</button>
-  <button name="call" {{canCall}}>{{callText}}</button>
-  <textarea name="message" {{canSend}}></textarea>
-  <button name="send" {{canSend}}>Send message</button>
-  <p>Using data channels you can compare average roundtrip times on a pings (mean over 10 samples) between using WebRTC data channel and websockets.</p>
-  <button name="latency" {{canSend}}>Test latency</button>
-  <p>WebRTC average latency: {{webRTCAverageLatency}}ms</p>
-  <p>Websocket average latency: {{websocketAverageLatency}}ms</p>
-  <ul>
-    {{#each messages}}
-      <li>{{from}}, {{dateCreated}}: {{message}}</li>
-    {{/each}}
-  </ul>
 </template>
 

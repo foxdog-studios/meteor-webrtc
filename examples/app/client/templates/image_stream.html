@@ -1,0 +1,117 @@
+<template name="ImageStream">
+  <div class="row">
+    <div class="col-md-12">
+{{#markdown}}
+#WebRTC Video via Image streaming
+
+__Stream video as a series of images via datachannels__
+
+Q. Why?
+
+A. It's an experiment for a very small use case (Streaming video over local networks for live performances) we want to be able to have greater
+control over what video is displayed.
+{{/markdown}}
+      <p>To start the chat open another browser window or go on your phone/tablet or get friend to go to this same address</p>
+      <p>Specifically open in another device/window <a href="{{roomName}}" target="_blank">{{roomName}}</a></p>
+      <button class="btn btn-info" name="call" {{canCall}}>{{callText}}</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Normal WebRTC video streams</h2>
+      <p>
+        This is the video that WebRTC sets up, using video codecs - smart things etc.
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6">
+      <div class="stream local-stream">
+        <video id="local-stream" src="{{localStream}}" autoplay muted></video>
+        <p>Local video</p>
+      </div>
+    </div>
+    <div class="col-xs-6">
+      <div class="stream remote-stream">
+        <video src="{{remoteStream}}" autoplay></video>
+        <p>Remote video</p>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Video created by sending a stream of individual images</h2>
+{{#markdown}}
+  Images from them local webcam video from a call to `getUserMedia` we get jpegs/webp images by copying the image
+  to a canvas and calling `toDataURL`.
+
+  This is sent down a datachannel and then set as the `src` of an image on the recieving end.
+
+  What's interesting is that we can change what the video on the fly (e.g. it's size and quality).
+
+  We also know when we last received a frame in our own code (rather than it be hidden "under the hood") - so can
+  do things like display a placeholder image when the video stream stalls.
+{{/markdown}}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6">
+      <img class="image-stream" id="local-image-stream" src="{{localImageSrc}}">
+      <p>Local image</p>
+      <p>
+        image size {{localImageKB}} KB / average transfer rate per second {{localImageKBps}} KB/s
+        / {{localImageKbps}} Kb/s
+      </p>
+      <form class="form-horizontal">
+        <div class="form-group">
+          <label for="image-quality" class="col-xs-2 control-label">
+            image quality
+          </label>
+          <div class="col-xs-8">
+            <input class="form-control" type="range" min="0" max="0.99" step="0.01" id="image-quality" value="{{imageQuality}}">
+          </div>
+          <div class="col-xs-2">
+            {{imageQuality}}
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="image-width" class="col-xs-2 control-label">
+            image width
+          </label>
+          <div class="col-xs-8">
+            <input class="form-control" type="range" min="1" max="400" step="1" id="image-width" value="{{imageWidth}}">
+          </div>
+          <div class="col-xs-2">
+            {{imageWidth}}px
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="image-height" class="col-xs-2 control-label">
+            image height
+          </label>
+          <div class="col-xs-8">
+            <input class="form-control" type="range" min="1" max="400" step="1" id="image-height" value="{{imageHeight}}">
+          </div>
+          <div class="col-xs-2">
+            {{imageHeight}}px
+          </div>
+        </div>
+        <div class="form-group">
+          <label id="data-channel-fps" class="col-xs-2 control-label">
+            FPS
+          </label>
+          <div class="col-xs-8">
+            <input class="form-control" type="range" min="1" max="30" step="1" id="data-channel-fps" value="{{dataChannelFps}}">
+          </div>
+          <div class="col-xs-2">
+            {{dataChannelFps}}fps
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="col-xs-6">
+      <img class="image-stream" id="image-stream" src="{{imageSrc}}">
+      <p>Remote image</p>
+    </div>
+  </div>
+</template>
