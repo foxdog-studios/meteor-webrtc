@@ -33,11 +33,14 @@ Template.home.created = ->
   # Try and create an RTCPeerConnection if supported
   hasWebRTC = false
   if RTCPeerConnection?
-    @_webRTCSignaller = SingleWebRTCSignallerFactory.create(roomName,
-                                          'master',
-                                          servers,
-                                          rtcPeerConnectionConfig,
-                                          mediaConfig)
+    @_webRTCSignaller = SingleWebRTCSignallerFactory.create(
+      share.stream,
+      roomName,
+      'master',
+      servers,
+      rtcPeerConnectionConfig,
+      mediaConfig
+    )
     hasWebRTC = true
   else
     console.error 'No RTCPeerConnection available :('

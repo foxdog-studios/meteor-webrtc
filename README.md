@@ -9,9 +9,20 @@ WebRTC signalling for Meteor with Reactivity!
 How to use
 ----------
 
+*Shared*
 ```javascript
+stream = new Meteor.Stream('signalling');
+```
 
+*Server*
+```javascript
+var allowAll = function () { return true; };
+stream.permissions.read(allowAll);
+stream.permissions.write(allowAll);
+```
 
+*Client*
+```javascript
 var signallingChannelName = "uniqueStringTokenForThisSignallingChannel";
 
 var rtcPeerConnectionConfig = {};
@@ -27,11 +38,14 @@ var mediaConfig = {
 };
 
 var webRTCSignaller = SingleWebRTCSignallerFactory.create(
-                                            signallingChannelName,
-                                            'master',
-                                            servers,
-                                            config,
-                                            mediaConfig);
+  stream,
+  signallingChannelName,
+  'master',
+  servers,
+  config,
+  mediaConfig
+);
+
 // Creates the rtcPeerConnection
 webRTCSignaller.start();
 
@@ -44,14 +58,4 @@ webRTCSignaller.createOffer();
 
 For more see the app in the example directorty, which is also running on the
 [demo site](http://webrtc-signalling.meteor.com/)
-
-TODO
-----
-
-- Allow for different signalling channels. At the moment there is one global,
-  public signalling channel using a [Meteor
-  Stream](http://arunoda.github.io/meteor-streams/). Nice for demos, not really
-  for a real app. Could use a user/connection based system backed a collection,
-  and pass in the signalling channel to the signaller, so they would only need
-  to implement the same interface.
 
