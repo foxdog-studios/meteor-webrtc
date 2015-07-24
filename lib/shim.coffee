@@ -4,7 +4,7 @@
     or window.PeerConnection \
     or window.RTCPeerConnection \
     or window.webkitPeerConnection00 \
-    or  window.webkitRTCPeerConnection
+    or window.webkitRTCPeerConnection
 
 @IceCandidate = window.mozRTCIceCandidate or window.RTCIceCandidate
 
