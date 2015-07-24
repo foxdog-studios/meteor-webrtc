@@ -1,5 +1,4 @@
 application-configuration@1.0.4
-arunoda:streams@0.1.17
 autoupdate@1.1.5
 base64@1.0.2
 binary-heap@1.0.2
@@ -13,7 +12,8 @@ ddp@1.0.14
 deps@1.0.6
 ejson@1.0.5
 fastclick@1.0.2
-fds:webrtc@2.4.0
+fds:streams@0.2.2
+fds:webrtc@3.0.0
 follower-livedata@1.0.3
 force-ssl@1.0.3
 geojson-utils@1.0.2

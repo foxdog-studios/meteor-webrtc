@@ -34,11 +34,12 @@ Template.ImageStream.created = ->
   hasWebRTC = false
   if RTCPeerConnection?
     @_webRTCSignaller = SingleWebRTCSignallerFactory.create(
-                                          signallingChannelName,
-                                          'master',
-                                          servers,
-                                          config,
-                                          mediaConfig)
+        share.stream,
+        signallingChannelName,
+        'master',
+        servers,
+        config,
+        mediaConfig)
     hasWebRTC = true
   else
     console.error 'No RTCPeerConnection available :('
