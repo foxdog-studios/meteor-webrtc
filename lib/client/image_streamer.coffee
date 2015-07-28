@@ -88,7 +88,10 @@ class @ImageStreamer
           @_sendNextVideo = true
 
   start: =>
-    requestAnimationFrame @_update
+    @_nextAnimationFrame = requestAnimationFrame @_update
+
+  stop: =>
+    cancelAnimationFrame @_nextAnimationFrame
 
   ready: =>
     @_ready.get()
