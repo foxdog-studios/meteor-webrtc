@@ -13,7 +13,7 @@ deps@1.0.6
 ejson@1.0.5
 fastclick@1.0.2
 fds:streams@0.2.2
-fds:webrtc@3.1.0
+fds:webrtc@3.1.1
 follower-livedata@1.0.3
 force-ssl@1.0.3
 geojson-utils@1.0.2
