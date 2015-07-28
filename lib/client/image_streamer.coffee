@@ -19,6 +19,10 @@ class @ImageVideoUserMediaGetter
   start: ->
     MediaStreamTrack.getSources @_gotMediaSources
 
+  stop: =>
+    @_stream?.stop()
+    @_localStreamUrl.set null
+
   _gotMediaSources: (sources) =>
     for source in sources
       if source.kind == 'video' and source.facing == 'user'
@@ -30,8 +34,8 @@ class @ImageVideoUserMediaGetter
   getStreamUrl: ->
     @_localStreamUrl.get()
 
-  _gUMSuccess: (stream) =>
-    @_localStreamUrl.set(URL.createObjectURL(stream))
+  _gUMSuccess: (@_stream) =>
+    @_localStreamUrl.set(URL.createObjectURL(@_stream))
 
   _gUMError: (error) =>
     console.error error

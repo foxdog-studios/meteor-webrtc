@@ -52,9 +52,10 @@ class ReactiveDataChannel
         console.error error
 
   close: ->
-    #@_rtcDataChannel?.close()
-    #@_rtcDataChannel = null
-    #@_isOpen.set(false)
+    console.log 'closing'
+    @_rtcDataChannel?.close()
+    @_rtcDataChannel = null
+    @_isOpen.set(false)
 
   _setRtcDataChannel: (@_rtcDataChannel) ->
     @_rtcDataChannel.onmessage = @_handleMessage

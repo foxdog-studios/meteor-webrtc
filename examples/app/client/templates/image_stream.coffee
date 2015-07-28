@@ -66,6 +66,8 @@ Template.ImageStream.rendered = ->
 
 
 Template.ImageStream.destroyed = ->
+  console.log 'stopping'
+  @_imageVideoUserMediaGetter.stop()
   @_webRTCSignaller.stop()
 
 
